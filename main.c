@@ -38,6 +38,7 @@ MAKE_HOOK_NAT(init_and_present, 0x132307C, void, struct* noteCut, int multiplier
 
 MAKE_HOOK_NAT(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) {
     // Lets just test to make sure this one works without running the actual ones that would change color based on hit score
+    log("Attempting to create new pointer to color with self pointer: %i", self);
     self->color = malloc(sizeof(Color));
     self->color->r = temp_r;
     self->color->g = temp_g;
