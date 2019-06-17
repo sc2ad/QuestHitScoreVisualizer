@@ -23,6 +23,6 @@ LOCAL_MODULE := hook
 
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_MODULE    := countersplus
+LOCAL_MODULE    := hitscorevisualizer
 LOCAL_SRC_FILES := main.c beatsaber-hook/shared/utils/utils.c beatsaber-hook/shared/inline-hook/inlineHook.c beatsaber-hook/shared/inline-hook/relocate.c
 include $(BUILD_SHARED_LIBRARY)

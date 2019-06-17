@@ -27,12 +27,12 @@ typedef struct __attribute__((__packed__)) {
     
 } FlyingScoreEffect;
 
-float temp_r = 1.0f;
-float temp_g = 0f;
-float temp_b = 0f;
-float temp_a = 1f;
+float temp_r = 1;
+float temp_g = 0;
+float temp_b = 0;
+float temp_a = 1;
 
-MAKE_HOOK_NAT(init_and_present, 0x132307C, void, struct* noteCut, int multiplier, float duration, struct* targetPos, struct Color* color, struct* saberAfterCutSwingRatingCounter) {
+MAKE_HOOK_NAT(init_and_present, 0x132307C, void, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
     // Placeholder, for now.
 }
 
