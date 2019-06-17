@@ -36,8 +36,24 @@ float temp_g = 0;
 float temp_b = 0;
 float temp_a = 1;
 
+MAKE_HOOK_NAT(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int** beforeCutRawScore, int** afterCutRawScore, int** cutDistanceRawScore) {
+    log("Created RawScoreWithoutMultiplier Hook!");
+    raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
+}
+
 MAKE_HOOK_NAT(init_and_present, 0x132307C, void, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
     // Placeholder, for now.
+    log("Created InitAndPresent Hook!");
+    log("Attempting to call standard InitAndPresent...");
+    init_and_present(noteCut, multiplier, duration, targetPos, color, saberAfterCutSwingRatingCounter);
+    log("Creating score int** pointers!");
+    int** beforeCut = malloc(sizeof(int*));
+    int** afterCut = malloc(sizeof(int*));
+    int** cutDistance = malloc(sizeof(int*));
+    log("Attempting to call RawScoreWithoutMultiplier hook...");
+    raw_score_without_multiplier(noteCut, saberAfterCutSwingRatingCounter, beforeCut, afterCut, cutDistance);
+    log("Completed!");
+    log("RawScore: %i", *(*afterCut) + *(*cutDistance));
 }
 
 MAKE_HOOK_NAT(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) {
@@ -58,5 +74,7 @@ __attribute__((constructor)) void lib_main()
 {
     log("Inserted HitScoreVisualizer to only display color: %f, %f, %f", temp_r, temp_g, temp_b);
     INSTALL_HOOK_NAT(manual_update);
-    log("Installed hook!");
+    log("Installed ManualUpdate Hook!");
+    INSTALL_HOOK_NAT(init_and_present);
+    log("Installed InitAndPresent Hook!");
 }
