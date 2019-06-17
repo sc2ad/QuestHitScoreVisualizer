@@ -1,13 +1,17 @@
 #include <android/log.h>
-#include <stdlib.h>
-#include <time.h>
-#include <stdalign.h>
 #include <stdio.h>
-#include <stdint.h>
-#include <math.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h> 
+#include <fcntl.h>
+#include <unistd.h>
+#include <dirent.h>
+#include <linux/limits.h>
+#include <sys/sendfile.h>
+#include <sys/stat.h>
 
-#include "beatsaber-hook/shared/inline-hook/inlineHook.h"
-#include "beatsaber-hook/shared/utils/utils.h"
+#include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
+#include "../beatsaber-hook/shared/utils/utils.h"
 
 typedef struct __attribute__((__packed__)) {
     float r;
