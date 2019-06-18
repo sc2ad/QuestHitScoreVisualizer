@@ -78,6 +78,9 @@ typedef struct __attribute__((__packed__)) {
 } Color;
 
 typedef struct __attribute__((__packed__)) {
+    // First field begins at 0x58, could fill in useless
+    // byte data here to just "take up space"
+    char data[0x58];
     void* fadeAnimationCurve;
     void* maxCutDistanceScoreIndicator;
     void* text;
