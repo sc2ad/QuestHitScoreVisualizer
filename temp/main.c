@@ -13,6 +13,8 @@
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
 typedef struct __attribute__((__packed__)) {
+	char _unused_data_useless[0xC];
+
 	void* _levelID;
 	void* _songName;
 	void* _songSubName;
@@ -36,6 +38,8 @@ typedef struct __attribute__((__packed__)) {
 	void* _environmentSceneInfoPtr;
 } BeatmapLevelSO;
 typedef struct __attribute__((__packed__)) {
+	char _unused_data_useless[0xC];
+
 	void* _tableView;
 	void* _cellPrefab;
 	void* _cellReuseIdentifier;
@@ -52,6 +56,8 @@ typedef struct __attribute__((__packed__)) {
 	void* _additionalContentModelPtr;
 } LevelPacksTableView;
 typedef struct __attribute__((__packed__)) {
+	char _unused_data_useless[0x20];
+
 	void* _bgImage;
 	void* _normalTextColor;
 	void* _selectedTextColor;
@@ -64,6 +70,8 @@ typedef struct __attribute__((__packed__)) {
 	void* _bgImagePtr;
 } TextSegmentedControlCellNew;
 typedef struct __attribute__((__packed__)) {
+	char _unused_data_useless[0xC];
+
 	void* _onText;
 	void* _offText;
 	void* _onTextColor;
