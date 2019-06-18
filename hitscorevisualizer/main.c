@@ -22,53 +22,7 @@ typedef struct judgement {
     char* text;
 } judgement_t;
 
-typedef struct node
-{
-    judgement_t* value;
-    struct node* next;
-} node_t;
-
-float temp_r = 1;
-float temp_g = 0;
-float temp_b = 0;
-float temp_a = 1;
-node_t* judgements = NULL;
-
-judgement_t* get(node_t* head, int index) {
-    node_t* current = head;
-    int cI = 0;
-    while (cI < index) {
-        if (current == NULL) {
-            return NULL;
-        }
-        current = current->next;
-        cI++;
-    }
-    return current->value;
-}
-
-int size(node_t* head) {
-    int length = 0;
-    node_t* current = head;
-    while (current != NULL) {
-        current = current->next;
-        length++;
-    }
-    return length;
-}
-
-void add(node_t* head, judgement_t* value) {
-    if (head == NULL) {
-        return;
-    }
-    node_t* current = head;
-    while (current->next != NULL) {
-        current = current->next;
-    }
-    current->next = malloc(sizeof(node_t));
-    current->next->value = value;
-    current->next->next = NULL;
-}
+judgement_t judgements[6];
 
 typedef struct __attribute__((__packed__)) {
     float r;
@@ -93,21 +47,21 @@ typedef struct __attribute__((__packed__)) {
 
 void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     log("Checking judgements for score: %i", score);
-    int l = size(judgements);
+    int l = 6; // Constant for now, should be the length of judgements
     log("Beginning for loop...");
-    judgement_t* best = get(judgements, 0);
+    judgement_t best = judgements[0];
     for (int i = 1; i < l; i++) {
-        if (get(judgements, i)->threshold > score) {
+        if (judgements[i].threshold > score) {
             break;
         }
-        best = get(judgements, i);
-        log("Setting new best judgement at index %i with text %s", i, best->text);
+        best = judgements[i];
+        log("Setting new best judgement at index %i with text %s", i, best.text);
     }
-    log("Setting score effect's color to best color with threshold: %i", best->threshold);
-    scorePointer->color->r = best->r;
-    scorePointer->color->g = best->g;
-    scorePointer->color->b = best->b;
-    scorePointer->color->a = best->a;
+    log("Setting score effect's color to best color with threshold: %i", best.threshold);
+    scorePointer->color->r = best.r;
+    scorePointer->color->g = best.g;
+    scorePointer->color->b = best.b;
+    scorePointer->color->a = best.a;
     log("Complete!");
 }
 
@@ -164,7 +118,7 @@ MAKE_HOOK(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) {
 
 __attribute__((constructor)) void lib_main()
 {
-    log("Inserted HitScoreVisualizer to only display color: %f, %f, %f", temp_r, temp_g, temp_b);
+    log("Inserting HitScoreVisualizer...");
     INSTALL_HOOK(manual_update);
     log("Installed ManualUpdate Hook!");
     INSTALL_HOOK(init_and_present);
@@ -175,61 +129,26 @@ __attribute__((constructor)) void lib_main()
     log("Installed HandleSaberAfterCutSwingRatingCounterDidChangeEvent Hook!");
     // Attempt to add and create judgements
     log("Attempting to create empty judgements linked list...");
-    judgements = malloc(sizeof(node_t));
+    // judgements = malloc(sizeof(node_t));
     // Creating Fantastic judgement
-    judgement_t* fantastic = malloc(sizeof(judgement_t));
-    fantastic->r = 1.0f;
-    fantastic->g = 1.0f;
-    fantastic->b = 1.0f;
-    fantastic->a = 1.0f;
-    fantastic->text = "Fantastic\n";
-    fantastic->threshold = 115;
-    add(judgements, fantastic);
+    judgement_t fantastic = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Fantastic\n"};
+    judgements[0] = fantastic;
     // Creating Excellent judgement
-    judgement_t* excellent = malloc(sizeof(judgement_t));
-    excellent->r = 0.0f;
-    excellent->g = 1.0f;
-    excellent->b = 0.0f;
-    excellent->a = 1.0f;
-    excellent->text = "<size=80%>Excellent</size>\n";
-    excellent->threshold = 101;
-    add(judgements, excellent);
+    judgement_t excellent = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Excellent</size>\n"};
+    judgements[1] = excellent;
     // Creating Great judgement
-    judgement_t* great = malloc(sizeof(judgement_t));
-    great->r = 1.0f;
-    great->g = 0.980392158f;
-    great->b = 0.0f;
-    great->a = 1.0f;
-    great->text = "<size=80%>Great</size>\n";
-    great->threshold = 90;
-    add(judgements, great);
+    judgement_t great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Great</size>\n"};
+    judgements[2] = great;
     // Creating Good judgement
-    judgement_t* good = malloc(sizeof(judgement_t));
-    good->r = 1.0f;
-    good->g = 0.6f;
-    good->b = 0.0f;
-    good->a = 1.0f;
-    good->text = "<size=80%>Good</size>\n";
-    good->threshold = 80;
-    add(judgements, good);
+    judgement_t good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Good</size>\n"};
+    judgements[3] = good;
     // Creating Decent judgement
-    judgement_t* decent = malloc(sizeof(judgement_t));
-    decent->r = 1.0f;
-    decent->g = 0.0f;
-    decent->b = 0.0f;
-    decent->a = 1.0f;
-    decent->text = "<size=80%>Decent</size>\n";
-    decent->threshold = 60;
-    add(judgements, decent);
+    judgement_t decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Decent</size>\n"};
+    judgements[4] = decent;
     // Creating Way Off judgement
-    judgement_t* way_off = malloc(sizeof(judgement_t));
-    way_off->r = 0.5f;
-    way_off->g = 0.0f;
-    way_off->b = 0.0f;
-    way_off->a = 1.0f;
-    way_off->text = "<size=80%>Way Off</size>\n";
-    way_off->threshold = 0;
-    add(judgements, way_off);
+    judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Way Off</size>\n"};
+    judgements[5] = way_off;
+    log("Created default judgements!");
 
     // log("Attempting to load judgements from config!");
     // FILE* config = fopen("/sdcard/Android/data/com.beatgames.beatsaber/files/mods/hitscorevisualizer.cfg", "r");
