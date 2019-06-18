@@ -36,7 +36,7 @@ float temp_g = 0;
 float temp_b = 0;
 float temp_a = 1;
 
-MAKE_HOOK_NAT(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int** beforeCutRawScore, int** afterCutRawScore, int** cutDistanceRawScore) {
+MAKE_HOOK_NAT(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
     log("Created RawScoreWithoutMultiplier Hook!");
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
@@ -46,10 +46,10 @@ MAKE_HOOK_NAT(init_and_present, 0x132307C, void, void* noteCut, int multiplier, 
     log("Created InitAndPresent Hook!");
     log("Attempting to call standard InitAndPresent...");
     init_and_present(noteCut, multiplier, duration, targetPos, color, saberAfterCutSwingRatingCounter);
-    log("Creating score int** pointers!");
-    int** beforeCut = malloc(sizeof(int*));
-    int** afterCut = malloc(sizeof(int*));
-    int** cutDistance = malloc(sizeof(int*));
+    log("Creating score int* pointers!");
+    int* beforeCut = malloc(sizeof(int));
+    int* afterCut = malloc(sizeof(int));
+    int* cutDistance = malloc(sizeof(int));
     log("Attempting to call RawScoreWithoutMultiplier hook...");
     raw_score_without_multiplier(noteCut, saberAfterCutSwingRatingCounter, beforeCut, afterCut, cutDistance);
     log("Completed!");
