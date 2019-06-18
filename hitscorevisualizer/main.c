@@ -36,12 +36,12 @@ float temp_g = 0;
 float temp_b = 0;
 float temp_a = 1;
 
-MAKE_HOOK_NAT(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
+MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
     log("Created RawScoreWithoutMultiplier Hook!");
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
 
-MAKE_HOOK_NAT(init_and_present, 0x132307C, void, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
+MAKE_HOOK(init_and_present, 0x132307C, void, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
     // Placeholder, for now.
     log("Created InitAndPresent Hook!");
     log("Attempting to call standard InitAndPresent...");
@@ -56,7 +56,7 @@ MAKE_HOOK_NAT(init_and_present, 0x132307C, void, void* noteCut, int multiplier, 
     log("RawScore: %i", *(*afterCut) + *(*cutDistance));
 }
 
-MAKE_HOOK_NAT(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) {
+MAKE_HOOK(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) {
     // Lets just test to make sure this one works without running the actual ones that would change color based on hit score
     log("Attempting to create new pointer to color with self pointer: %i", self);
     self->color = malloc(sizeof(Color));
@@ -73,8 +73,10 @@ MAKE_HOOK_NAT(manual_update, 0x1323314, void, FlyingScoreEffect* self, float t) 
 __attribute__((constructor)) void lib_main()
 {
     log("Inserted HitScoreVisualizer to only display color: %f, %f, %f", temp_r, temp_g, temp_b);
-    INSTALL_HOOK_NAT(manual_update);
+    INSTALL_HOOK(manual_update);
     log("Installed ManualUpdate Hook!");
-    INSTALL_HOOK_NAT(init_and_present);
+    INSTALL_HOOK(init_and_present);
     log("Installed InitAndPresent Hook!");
+    INSTALL_HOOK(raw_score_without_multiplier);
+    log("Installed RawScoreWithoutMultiplier Hook!");
 }
