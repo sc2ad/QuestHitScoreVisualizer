@@ -38,7 +38,7 @@ typedef struct __attribute__((__packed__)) {
     void* fadeAnimationCurve;
     void* maxCutDistanceScoreIndicator;
     void* text;
-    Color* color;
+    Color color;
     float colorAMultiplier;
     void* noteCutInfo;
     void* saberAfterCutSwingRatingCounter;
@@ -51,17 +51,17 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     log("Beginning for loop...");
     judgement_t best = judgements[0];
     for (int i = 1; i < l; i++) {
-        if (judgements[i].threshold > score) {
+        if (judgements[i].threshold <= score) {
             break;
         }
         best = judgements[i];
         log("Setting new best judgement at index %i with text %s", i, best.text);
     }
     log("Setting score effect's color to best color with threshold: %i", best.threshold);
-    scorePointer->color->r = best.r;
-    scorePointer->color->g = best.g;
-    scorePointer->color->b = best.b;
-    scorePointer->color->a = best.a;
+    scorePointer->color.r = best.r;
+    scorePointer->color.g = best.g;
+    scorePointer->color.b = best.b;
+    scorePointer->color.a = best.a;
     log("Complete!");
 }
 
@@ -70,7 +70,7 @@ MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void*
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
 
-MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
+MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, void* targetPos, Color color, void* saberAfterCutSwingRatingCounter) {
     // Placeholder, for now.
     log("Called InitAndPresent Hook!");
     log("Attempting to call standard InitAndPresent...");
