@@ -32,13 +32,19 @@ typedef struct __attribute__((__packed__)) {
 } Color;
 
 typedef struct __attribute__((__packed__)) {
+    float x;
+    float y;
+    float z;
+} Vector3;
+
+typedef struct __attribute__((__packed__)) {
     // First field begins at 0x58, could fill in useless
     // byte data here to just "take up space"
     char data[0x58];
     void* fadeAnimationCurve;
     void* maxCutDistanceScoreIndicator;
     void* text;
-    Color* color;
+    Color color;
     float colorAMultiplier;
     void* noteCutInfo;
     void* saberAfterCutSwingRatingCounter;
@@ -58,10 +64,10 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
         log("Setting new best judgement at index %i with text %s", i, best.text);
     }
     log("Setting score effect's color to best color with threshold: %i", best.threshold);
-    scorePointer->color->r = best.r;
-    scorePointer->color->g = best.g;
-    scorePointer->color->b = best.b;
-    scorePointer->color->a = best.a;
+    scorePointer->color.r = best.r;
+    scorePointer->color.g = best.g;
+    scorePointer->color.b = best.b;
+    scorePointer->color.a = best.a;
     log("Complete!");
 }
 
@@ -70,7 +76,41 @@ MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void*
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
 
-MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, void* targetPos, Color* color, void* saberAfterCutSwingRatingCounter) {
+// RELEVANT GHIDRA DUMP OF INIT AND PRESENT
+
+// FULL PARAMETERS: (int param_1,undefined4 param_2,undefined4 param_3,undefined4 param_4,
+            //    undefined4 param_5,undefined4 param_6,undefined4 param_7,undefined4 param_8,
+            //    undefined4 param_9,undefined4 param_10,undefined4 param_11,int param_12)
+
+// COMPARED TO IL2CPP DUMPER: (this, NoteCutInfo noteCutInfo, int multiplier, float duration, Vector3 targetPos, 
+            //    Color color, SaberAfterCutSwingRatingCounter saberAfterCutSwingRatingCounter)
+
+//   *(undefined4 *)(param_1 + 100) = param_8; <-- I don't know what this is
+// SO... color starts at 0x64, but the first param is at 0x68... Not sure why
+// THEN, there are more params (each is only 4 bytes, it seems that they are the r,g,b values of the color?)
+// THE weird thing is that it then ends at 0x74, which is significantly different than 0x78 (next field)
+// AND why are the parameters even fed in directly like this?
+//   *(undefined4 *)(param_1 + 0x68) = param_9;
+//   *(undefined4 *)(param_1 + 0x6c) = param_10;
+//   *(undefined4 *)(param_1 + 0x70) = param_11;
+//   *(undefined4 *)(param_1 + 0x78) = param_2; //_noteCutInfo
+//   *(int *)(param_1 + 0x7c) = param_12; //_saberAfterCutSwingRatingCounter
+//   FUN_00493dc0(param_12,uVar1,0);
+//   ScoreController.RawScoreWithoutMultiplier(param_2,param_12,&local_2c,&local_30,&local_34,0);
+//   iVar2 = *(int *)(param_1 + 0x60); //_text
+//   local_28 = local_30 + local_2c;
+//   uVar1 = FUN_01395cc0(&local_28,0); //this.GetScoreText(score)
+//   FUN_00520d90(iVar2,uVar1,0);
+//   FUN_00bf01d8(*(int *)(param_1 + 0x5c),(uint)(local_34 == 0xf),0); //_maxCutDistanceScoreIndicator
+//   uVar1 = 0x3e99999a;
+//   if (0x67 < local_30 + local_2c) {
+//     uVar1 = 0x3f800000;
+//   }
+//   *(undefined4 *)(param_1 + 0x74) = uVar1; //_colorAMultiplier
+//   FUN_01332bf0(param_1,param_4,param_5,param_6,param_7,0); //base.InitAndPresent(duration, vector3, false)
+//   return;
+
+MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, Vector3 targetPos, Color color, void* saberAfterCutSwingRatingCounter) {
     // Placeholder, for now.
     log("Called InitAndPresent Hook!");
     log("Attempting to call standard InitAndPresent...");
