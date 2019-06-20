@@ -13,6 +13,9 @@
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
 
+#undef log
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer] " + __VA_ARGS__)
+
 typedef struct judgement {
     int threshold;
     float r;
