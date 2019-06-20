@@ -85,11 +85,10 @@ MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void*
 // COMPARED TO IL2CPP DUMPER: (this, NoteCutInfo noteCutInfo, int multiplier, float duration, Vector3 targetPos, 
             //    Color color, SaberAfterCutSwingRatingCounter saberAfterCutSwingRatingCounter)
 
-//   *(undefined4 *)(param_1 + 100) = param_8; <-- I don't know what this is
-// SO... color starts at 0x64, but the first param is at 0x68... Not sure why
 // THEN, there are more params (each is only 4 bytes, it seems that they are the r,g,b values of the color?)
 // THE weird thing is that it then ends at 0x74, which is significantly different than 0x78 (next field)
 // AND why are the parameters even fed in directly like this?
+//   *(undefined4 *)(param_1 + 100) = param_8; <-- START OF COLOR (0x64)
 //   *(undefined4 *)(param_1 + 0x68) = param_9;
 //   *(undefined4 *)(param_1 + 0x6c) = param_10;
 //   *(undefined4 *)(param_1 + 0x70) = param_11;
