@@ -35,7 +35,7 @@ MAKE_HOOK(Camera_set_cullingMask, 0xC2DFB0, void, void* camera, int value) {
 MAKE_HOOK(ObstacleController_ctor, 0x13B0C60, void, void* self) {
     log("Entering ObstacleController.ctor...");
     log("Attemping to get Camera...");
-    void* (*fun_ptr)(void) = 0xC2F6D4;
+    void* (*fun_ptr)(void) = (void*)getRealOffset(0xC2F6D4);
     void* cam = (*fun_ptr)();
     log("Attempting to get old culling mask...");
     int mask = Camera_get_cullingMask(cam);
