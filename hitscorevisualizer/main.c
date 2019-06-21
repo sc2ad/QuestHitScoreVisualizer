@@ -124,7 +124,7 @@ MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* note
     log("Attempting to call RawScoreWithoutMultiplier hook...");
     raw_score_without_multiplier(noteCut, saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
     log("Completed!");
-    int score = afterCut + cutDistance;
+    int score = beforeCut + afterCut;
     log("RawScore: %i", score);
     log("Checking judgements...");
     checkJudgements(self, score);
@@ -141,7 +141,7 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, 0x13233DC, void, 
     log("Attempting to call RawScoreWithoutMultiplier hook...");
     raw_score_without_multiplier(self->noteCutInfo, self->saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
     log("Completed!");
-    int score = afterCut + cutDistance;
+    int score = beforeCut + afterCut;
     log("RawScore: %i", score);
     log("Checking judgements...");
     checkJudgements(self, score);
