@@ -57,9 +57,9 @@ typedef struct __attribute__((__packed__)) {
 void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     log("Checking judgements for score: %i", score);
     int l = 6; // Constant for now, should be the length of judgements
-    judgement_t best = judgements[0];
-    for (int i = 1; i < l; i++) {
-        if (judgements[i].threshold <= score) {
+    judgement_t best = judgements[5];
+    for (int i = 4; i >= 0; i--) {
+        if (judgements[i].threshold > score) {
             break;
         }
         best = judgements[i];
