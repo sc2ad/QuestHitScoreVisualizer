@@ -40,13 +40,13 @@ typedef struct __attribute__((__packed__)) {
     float z;
 } Vector3;
 
-typedef struct __attribute__((__packed__)) {
+typedef struct {
     // First field begins at 0x58, could fill in useless
     // byte data here to just "take up space"
     char data[0x58];
     void* fadeAnimationCurve;
     void* maxCutDistanceScoreIndicator;
-    void* text;
+    void* text; // TextMeshPro (base class: TMP_Text)
     Color color;
     float colorAMultiplier;
     void* noteCutInfo;
@@ -69,6 +69,11 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     scorePointer->color.g = best.g;
     scorePointer->color.b = best.b;
     scorePointer->color.a = best.a;
+    log("Attempting to get text...");
+    // TMP_Text.get_text: 0x510D88
+    cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
+    cs_string* old = get_text(scorePointer->text);
+    
     log("Modified color!");
 }
 
