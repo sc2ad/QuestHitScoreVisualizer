@@ -50,6 +50,7 @@ typedef struct {
 
 void* createText(void* rectTransformParent, char text[], Vector2 anchoredPosition, Vector2 sizeDelta) {
     log("Creating text: %s", text);
+    /////////////////////////////////////////////////////////////////////////////////////
     log("Attempting to create new gameobject...");
     // GameObject.ctor(string name): 0xC7643C
     void* gameobj = malloc(sizeof(GameObject)); // YIKES!
@@ -57,10 +58,11 @@ void* createText(void* rectTransformParent, char text[], Vector2 anchoredPositio
     // GameObject.SetActive(bool value): 0xC77074
     void (*set_active)(void*, char) = (void*)getRealOffset(0xC77074);
     set_active(gameobj, 0x0); // Set active to false, in theory
+    /////////////////////////////////////////////////////////////////////////////////////
     log("Attempting to add component for TextMeshProUGUI...");
     // GameObject.AddComponent: 0xC766D0, 0x5BCDA4
     void* (*add_comp)(void*, void*) = (void*)getRealOffset(0xC766D0);
-    void* textMesh = add_comp(gameobj, /*TYPE OF TEXTMESHPROUGUI */0);
+    void* textMesh = add_comp(gameobj, /*TODO TYPE OF TEXTMESHPROUGUI */0);
     //TODO ADD FONT
     log("Attempting to get RectTransform...");
     // TextMeshProUGUI.get_rectTransform: (base class, TMP_Text): 0x50FF0C
@@ -70,18 +72,22 @@ void* createText(void* rectTransformParent, char text[], Vector2 anchoredPositio
     // RectTransform.SetParent: (base class, Transform): 0xBEF560
     void (*setParent)(void*, void*, char) = (void*)getRealOffset(0xBEF560);
     setParent(rectTransform, rectTransformParent, 0x0); // Set save world pos to false, in theory
+    /////////////////////////////////////////////////////////////////////////////////////
     log("Attempting to get original text...");
     // TextMeshProUGUI.get_text: (base class, TMP_Text): 0x510D88
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* new_text = get_text(textMesh);
+    char* new_text_real;
+    csstrtostr(new_text, new_text_real);
     log("Attempting to convert input text: %s", text);
     // Need to call the setter? hopefully just the getter...
-    strcpy(new_text->str, text);
+    strcpy(new_text_real, text);
     log("Attempting to set font size...");
     // TextMeshProUGUI.set_fontSize: (base class, TMP_Text): 0x5119A8
     void (*set_fontSize)(void*, float) = (void*)getRealOffset(0x5119A8);
     set_fontSize(textMesh, 4.0f);
     // ENTER THE DANGER ZONE!
+    /////////////////////////////////////////////////////////////////////////////////////
     log("Attempting to set color to white...");
     // TextMeshProUGUI.set_color: (base class, TMP_Text): 0x51126C
     void (*set_color)(void*, Color) = (void*)getRealOffset(0x51126C);
@@ -118,5 +124,5 @@ void* createText(void* rectTransformParent, char text[], Vector2 anchoredPositio
 __attribute__((constructor)) void lib_main()
 {
     log("Installing Most-Bestest-Song hooks...");
-    
+    log("Completed installing hooks!");
 }
