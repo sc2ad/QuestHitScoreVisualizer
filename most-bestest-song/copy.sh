@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk
-adb push libs/armeabi-v7a/libtransparentwalls.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libtransparentwalls.so
+adb push libs/armeabi-v7a/libmostbestestsong.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libmostbestestsong.so
 adb shell am force-stop com.beatgames.beatsaber
 #adb shell input keyevent KEYCODE_DPAD_RIGHT
 #adb shell input keyevent KEYCODE_SPACE
