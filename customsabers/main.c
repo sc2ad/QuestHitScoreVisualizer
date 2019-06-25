@@ -36,8 +36,17 @@
 
 // Saber.Start: 0x481080
 
-cs_string PATH = "customSaber.bundle";
+// From Unity Project, this is what a call to Resources.Load<GameObject>("_customsaber") looks like:
+// Resources.Load(DAT_00708ad4,DAT_00701f6c);
+// I THINK 00708ad4 is GameObject as opposed to 00701F6C (whch is "_customsaber")
+// But because these are dynamically created, I have no idea what/where these are or how to learn.
+// Can confirm that the first one is indeed GameObject
+// Two additional calls to it: 006b8f64, 0070003c
+// Can't find matching calls to these in dumps, they look like locations where DAT are held (pointers to DAT)
 
+
+cs_string PATH = "customSaber.bundle";
+int GO_TYPE = 
 
 MAKE_HOOK(Saber_start, 0x481080, void, void* self) {
     log("Entering Saber.Start hook...");
