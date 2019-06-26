@@ -87,34 +87,50 @@ void* createText(void* rectTransformParent, char text[], Vector2 anchoredPositio
     void (*set_fontSize)(void*, float) = (void*)getRealOffset(0x5119A8);
     set_fontSize(textMesh, 4.0f);
     // ENTER THE DANGER ZONE!
-    /////////////////////////////////////////////////////////////////////////////////////
     log("Attempting to set color to white...");
     // TextMeshProUGUI.set_color: (base class, TMP_Text): 0x51126C
-    void (*set_color)(void*, Color) = (void*)getRealOffset(0x51126C);
-    set_color(textMesh, (Color){1.0f, 1.0f, 1.0f, 1.0f});
+    // void (*set_color)(void*, Color) = (void*)getRealOffset(0x51126C);
+    // set_color(textMesh, (Color){1.0f, 1.0f, 1.0f, 1.0f});
+    // TextMeshProUGUI.get_color: (base class, TMP_Text): 0x51125C
+    Color (*get_color)(void*) = (void*)getRealOffset(0x51125C);
+    Color m_color = get_color(textMesh);
+    m_color.r = 1.0f;
+    m_color.g = 1.0f;
+    m_color.b = 1.0f;
+    m_color.a = 1.0f;
 
     log("Attempting to set RectTransform.anchorMin...");
-    // RectTransform.get_anchorMin: 0xC93240 RETURNS STRUCT? STRUCT POINTER?
-    Vector2* (*get_anchorMin)(void*) = (void*)getRealOffset(0xC93240);
-    Vector2* m_min = get_anchorMin(rectTransform);
+    // RectTransform.get_anchorMin: 0xC93240 RETURNS STRUCT?
+    Vector2 (*get_anchorMin)(void*) = (void*)getRealOffset(0xC93240);
+    Vector2 m_min = get_anchorMin(rectTransform);
     log("Attempting to set fields for RectTransform.anchorMin...");
     m_min->x = 0.5f;
     m_min->y = 0.5f;
     log("Attempting to set RectTransform.anchorMax...");
-    // RectTransform.get_anchorMax: 0xC93398 RETURNS STRUCT? STRUCT POINTER?
-    Vector2* (*get_anchorMax)(void*) = (void*)getRealOffset(0xC93398);
-    Vector2* m_max = get_anchorMax(rectTransform);
+    // RectTransform.get_anchorMax: 0xC93398 RETURNS STRUCT?
+    Vector2 (*get_anchorMax)(void*) = (void*)getRealOffset(0xC93398);
+    Vector2 m_max = get_anchorMax(rectTransform);
     log("Attempting to set fields for RectTransform.anchorMax...");
-    m_max->x = 0.5f;
-    m_max->y = 0.5f;
+    m_max.x = 0.5f;
+    m_max.y = 0.5f;
     log("Attempting to set RectTransform.sizeDelta...");
     // RectTransform.set_sizeDelta: 0xC93704 REQUIRES STRUCT? STRUCT POINTER?
-    void (*set_sizeDelta)(void*, Vector2) = (void*)getRealOffset(0xC93704);
-    set_sizeDelta(rectTransform, sizeDelta);
+    // void (*set_sizeDelta)(void*, Vector2) = (void*)getRealOffset(0xC93704);
+    // set_sizeDelta(rectTransform, sizeDelta);
+    // RectTransform.get_sizeDelta: 0xC93648 RETURNS STRUCT
+    Vector2 (*get_sizeDelta)(void*) = (void*)getRealOffset(0xC93648);
+    Vector2 m_sizeDelta = get_sizeDelta(rectTransform);
+    m_sizeDelta.x = sizeDelta.x;
+    m_sizeDelta.y = sizeDelta.y;
     log("Attempting to set RectTransform.anchoredPosition...");
     // RectTransform.set_anchoredPosition: 0xC935AC REQUIRES STRUCT? STRUCT POINTER?
-    void (*set_anchoredPosition)(void*, Vector2) = (void*)getRealOffset(0xC935AC);
-    set_anchoredPosition(rectTransform, anchoredPosition);
+    // void (*set_anchoredPosition)(void*, Vector2) = (void*)getRealOffset(0xC935AC);
+    // set_anchoredPosition(rectTransform, anchoredPosition);
+    // RectTransform.get_anchoredPosition: 0xC934F0
+    Vector2 (*get_anchoredPosition)(void*) = (void*)getRealOffset(0xC934F0);
+    Vector2 m_anchoredPosition = get_anchoredPosition(rectTransform);
+    m_anchoredPosition.x = anchoredPosition.x;
+    m_anchoredPosition.y = anchoredPosition.y;
 
     log("Attempting to set game object to be active again...");
     set_active(gameobj, 0x1);
