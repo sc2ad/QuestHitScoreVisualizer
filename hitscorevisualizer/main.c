@@ -69,12 +69,12 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     scorePointer->color.g = best.g;
     scorePointer->color.b = best.b;
     scorePointer->color.a = best.a;
+    log("Modified color!");
     log("Attempting to get text...");
     // TMP_Text.get_text: 0x510D88
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
-    
-    log("Modified color!");
+    log("Got text!");
 }
 
 MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
@@ -83,7 +83,6 @@ MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void*
 }
 
 MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, Vector3 targetPos, Color color, void* saberAfterCutSwingRatingCounter) {
-    // Placeholder, for now.
     log("Called InitAndPresent Hook!");
     log("Attempting to call standard InitAndPresent...");
     init_and_present(self, noteCut, multiplier, duration, targetPos, color, saberAfterCutSwingRatingCounter);
@@ -144,44 +143,4 @@ __attribute__((constructor)) void lib_main()
     judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Way Off</size>\n"};
     judgements[5] = way_off;
     log("Created default judgements!");
-
-    // log("Attempting to load judgements from config!");
-    // FILE* config = fopen("/sdcard/Android/data/com.beatgames.beatsaber/files/mods/hitscorevisualizer.cfg", "r");
-
-    // log("Attempting to count number of lines in config!");
-    // int count = 0; // Count of lines, count of judgements.
-    // char c;
-
-    // for (c = getc(config); c != EOF; c = getc(config)) 
-    //     if (c == '\n') // Increment count if this character is newline 
-    //         count = count + 1;
-
-    // log("Found %i lines in config!", count);
-
-    // for (int i = 0; i < count; i++) {
-    //     log("Attempting to load judgement: %i", i);
-    //     // Possible memory leakage?
-    //     float* r = malloc(sizeof(float));
-    //     float* g = malloc(sizeof(float));
-    //     float* b = malloc(sizeof(float));
-    //     float* a = malloc(sizeof(float));
-    //     int* thresh = malloc(sizeof(int));
-    //     char* text;
-    //     // Possible memory leakage?
-    //     judgement* judge = malloc(sizeof(judgement));
-    //     log("Allocated memory for judgement");
-    //     fscanf(config, "%f %f %f %f %i %s", r, g, b, a, thresh, text);
-    //     log("Read judgement from file");
-    //     judge->threshold = *thresh;
-    //     judge->r = *r;
-    //     judge->g = *g;
-    //     judge->b = *b;
-    //     judge->a = *a;
-    //     judge->text = text;
-    //     log("Populated fields of judgement!");
-    //     add(judgements, judge);
-    //     log("Added judge to judgements!");
-    // }
-    // log("Completed reading config!");
-    // fclose(config);
 }
