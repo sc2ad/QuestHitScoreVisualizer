@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/stat.h> 
 #include <fcntl.h>
+#include <wchar.h>
 #include <unistd.h>
 #include <dirent.h>
 #include <linux/limits.h>
@@ -74,6 +75,9 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     // TMP_Text.get_text: 0x510D88
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
+    // FOR NOW, LET'S SEE IF WE CAN JUST COMPLETELY OVERWRITE THE TEXT TO SOMETHING DIFFERENT
+    old->len = 14;
+    wcscpy(old->str, L"MY CUSTOM TEXT");
     log("Got text!");
 }
 
