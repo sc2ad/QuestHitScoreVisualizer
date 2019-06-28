@@ -76,8 +76,46 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
     // FOR NOW, LET'S SEE IF WE CAN JUST COMPLETELY OVERWRITE THE TEXT TO SOMETHING DIFFERENT
-    old->len = 14;
-    wcscpy(old->str, L"MY CUSTOM TEXT");
+    log("Attempting to store old text...");
+    // THIS IS SUPER SCARY AND A COMPLETE HACK BUT IF IT WORKS, IT WORKS
+    int oLen = old->len;
+    unsigned short score1 = old->str[0];
+    unsigned short score2;
+    unsigned short score3;
+    if (oLen >= 2) {
+        score2 = old->str[1];
+    }
+    if (oLen >= 3) {
+        score3 = old->str[2];
+    }
+    // char* oldText;
+    // csstrtostr(old, oldText);
+    
+    log("Attempting to set text to judgement...");
+    // strcat(oldText, best.text);
+    // setcsstr(old, oldText);
+    setcsstr(old, best.text);
+    old->str[old->len] = score1;
+    old->len = old->len + 1;
+    if (oLen >= 2) {
+        old->str[old->len] = score2;
+        old->len = old->len + 1;
+    }
+    if (oLen >= 3) {
+        old->str[old->len] = score3;
+        old->len = old->len + 1;
+    }
+
+    // old->str[0] = (short)L'M';
+    // old->str[1] = (short)L'Y';
+    // old->str[2] = (short)L' ';
+    // old->str[3] = (short)L'C';
+    // old->str[4] = (short)L'U';
+    // old->str[5] = (short)L'S';
+    // old->str[6] = (short)L'T';
+    // old->str[7] = (short)L'O';
+    // old->str[8] = (short)L'M';
+
     log("Got text!");
 }
 
