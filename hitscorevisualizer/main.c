@@ -71,40 +71,89 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     scorePointer->color.b = best.b;
     scorePointer->color.a = best.a;
     log("Modified color!");
+    log("Setting rich text...");
+    // TMP_Text.set_richText: 0x512540
+    void (*set_richText)(void*, char) = (void*)getRealOffset(0x512540);
+    set_richText(scorePointer->text, 0x1);
+    log("Disabling word wrap...");
+    // TMP_Text.set_enableWordWrapping: 0x51205C
+    void (*set_enableWordWrapping)(void*, char) = (void*)getRealOffset(0x51205C);
+    set_enableWordWrapping(scorePointer->text, 0x0);
+    log("Setting overflow option...");
+    // TMP_Text.set_overflowMode: 0x512128
+    void (*set_overflowMode)(void*, int) = (void*)getRealOffset(0x512128);
+    set_overflowMode(scorePointer->text, 0x0);
     log("Attempting to get text...");
     // TMP_Text.get_text: 0x510D88
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
-    // FOR NOW, LET'S SEE IF WE CAN JUST COMPLETELY OVERWRITE THE TEXT TO SOMETHING DIFFERENT
-    log("Attempting to store old text...");
-    // THIS IS SUPER SCARY AND A COMPLETE HACK BUT IF IT WORKS, IT WORKS
-    int oLen = old->len;
-    unsigned short score1 = old->str[0];
-    unsigned short score2;
-    unsigned short score3;
-    if (oLen >= 2) {
-        score2 = old->str[1];
-    }
-    if (oLen >= 3) {
-        score3 = old->str[2];
-    }
-    // char* oldText;
-    // csstrtostr(old, oldText);
+    log("Attempting to create new C# string...");
+    cs_string* judgement_cs = malloc(sizeof(cs_string));
+    log("Attempting to set new string to judgement text...");
+    setcsstr(judgement_cs, best.text);
+    log("Attempting to concat judgement text and old text...");
+    // System.string.Concat: 0x972F2C
+    cs_string* (*concat)(cs_string*, cs_string*) = (void*)getRealOffset(0x972F2C);
+    cs_string* newText = concat(judgement_cs, old);
+    log("Attempting to overwrite old text with newText...");
+    setcswstr(old, newText->str);
+    log("Freeing new text...");
+    free(judgement_cs);
+    // // FOR NOW, LET'S SEE IF WE CAN JUST COMPLETELY OVERWRITE THE TEXT TO SOMETHING DIFFERENT
+    // log("Attempting to store old text...");
+    // // THIS IS SUPER SCARY AND A COMPLETE HACK BUT IF IT WORKS, IT WORKS
+    // int oLen = old->len;
+    // log("Old length of string: %i", oLen);
+    // unsigned short score1 = old->str[0];
+    // unsigned short score2;
+    // unsigned short score3;
+    // log("Saved score: %i", score1);
+    // if (oLen >= 2) {
+    //     score2 = old->str[1];
+    //     log("Saved score: %i", score2);
+    // }
+    // if (oLen >= 3) {
+    //     score3 = old->str[2];
+    //     log("Saved score: %i", score3);
+    // }
+    // // char* oldText;
+    // // csstrtostr(old, oldText);
     
-    log("Attempting to set text to judgement...");
-    // strcat(oldText, best.text);
-    // setcsstr(old, oldText);
-    setcsstr(old, best.text);
-    old->str[old->len] = score1;
-    old->len = old->len + 1;
-    if (oLen >= 2) {
-        old->str[old->len] = score2;
-        old->len = old->len + 1;
-    }
-    if (oLen >= 3) {
-        old->str[old->len] = score3;
-        old->len = old->len + 1;
-    }
+    // log("Attempting to set text to judgement...");
+    // // strcat(oldText, best.text);
+    // // setcsstr(old, oldText);
+    // // setcsstr(old, best.text);
+
+    // log("Attempting to get length of judgement str");
+    // int strL = strlen(best.text);
+    // log("String length: %i", strL);
+    // log("PRE-OVERWRITE DUMP AT: %i", (int)old->str);
+    // for (int i = 0; i < 50; i++) {
+    //     log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
+    // }
+    // for (int i = 0; i < strL; i++) {
+    //     old->str[i] = (unsigned short)best.text[i];
+    //     old->len += 1;
+    // }
+    // log("Appending score text...");
+    // old->str[old->len] = score1;
+    // log("Appended: %i", old->str[old->len]);
+    // old->len += 1;
+    // if (oLen >= 2) {
+    //     old->str[old->len] = score2;
+    //     log("Appended: %i", old->str[old->len]);
+    //     old->len += 1;
+    // }
+    // if (oLen >= 3) {
+    //     old->str[old->len] = score3;
+    //     log("Appended: %i", old->str[old->len]);
+    //     old->len += 1;
+    // }
+    // log("New length: %i", old->len);
+    // log("POST-OVERWRITE DUMP AT: %i", (int)old->str);
+    // for (int i = 0; i < 50; i++) {
+    //     log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
+    // }
 
     // old->str[0] = (short)L'M';
     // old->str[1] = (short)L'Y';
@@ -116,7 +165,7 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     // old->str[7] = (short)L'O';
     // old->str[8] = (short)L'M';
 
-    log("Got text!");
+    log("Complete!");
 }
 
 MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
