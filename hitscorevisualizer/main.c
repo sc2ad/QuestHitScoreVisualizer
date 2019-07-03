@@ -15,7 +15,7 @@
 #include "../beatsaber-hook/shared/utils/utils.h"
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.3.6] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.3.7] " __VA_ARGS__)
 
 typedef struct judgement {
     int threshold;
@@ -74,25 +74,35 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     // TMP_Text.get_text: 0x510D88
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
+
+
     log("PRE DUMP AT: %i", (int)old->str);
     for (int i = 0; i < 50; i++) {
         log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
     }
     log("Attempting to make new string and construct it...");
     // SETUP STRING
-    // System.string.CreateString(char* str, int start, int length): 0x9831BC
-    cs_string* (*create_str)(char*, int, int) = (void*)getRealOffset(CREATE_STRING_OFFSET);
-    cs_string* judgement_cs = create_str(best.text, 0, (int)strlen(best.text));
+    // System.String.FastAllocateString (and then constructor)
+    cs_string* (*allocate_str)(int) = (void*)getRealOffset(ALLOCATE_STRING_OFFSET);
+    cs_string* judgement_cs = allocate_str(strlen(best.text));
+    log("Attempting to construct judgement_cs string...");
+    // System.String.ctor(char c, int length): 0x97D778
+    void (*ctor_string)(unsigned short, int) = (void*)getRealOffset(0x97D778);
+    ctor_string(44, strlen(best.text));
+    log("Attempting to set judgement_cs text...");
+    setcsstr(judgement_cs, best.text, strlen(best.text));
     // cs_string* judgement_cs = createcsstr(best.text, strlen(best.text));
     // setcsstr(judgement_cs, best.text, strlen(best.text));
     log("Attempting to concat judgement text and old text...");
     // System.string.Concat: 0x972F2C
     cs_string* (*concat)(cs_string*, cs_string*) = (void*)getRealOffset(CONCAT_STRING_OFFSET);
-    cs_string* newText = concat(judgement_cs, old);
+    cs_string* newText = concat(judgement_cs, old);    
     log("AFTER DUMP AT: %i", (int)old->str);
     for (int i = 0; i < 50; i++) {
         log("Byte at %i is: %i", (int)newText->str + i, *(char*)((int)newText->str + i));
     }
+
+
     log("Calling set_text to attempt to fix stuff...");
     // TMP_Text.set_text: 0x510D90
     void (*set_text)(void*, cs_string*) = (void*)getRealOffset(0x510D90);
@@ -234,22 +244,22 @@ __attribute__((constructor)) void lib_main()
     log("Attempting to create empty judgements array...");
     // judgements = malloc(sizeof(node_t));
     // Creating Fantastic judgement
-    judgement_t fantastic = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Fantastic\n"};
+    judgement_t fantastic = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!\n"};
     judgements[0] = fantastic;
     // Creating Excellent judgement
-    judgement_t excellent = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Excellent</size>\n"};
+    judgement_t excellent = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>\n"};
     judgements[1] = excellent;
     // Creating Great judgement
-    judgement_t great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Great</size>\n"};
+    judgement_t great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>\n"};
     judgements[2] = great;
     // Creating Good judgement
-    judgement_t good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Good</size>\n"};
+    judgement_t good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>\n"};
     judgements[3] = good;
     // Creating Decent judgement
-    judgement_t decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Decent</size>\n"};
+    judgement_t decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>\n"};
     judgements[4] = decent;
     // Creating Way Off judgement
-    judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Way Off</size>\n"};
+    judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>\n"};
     judgements[5] = way_off;
     log("Created default judgements!");
 }
