@@ -15,7 +15,7 @@
 #include "../beatsaber-hook/shared/utils/utils.h"
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.3.7] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.1] " __VA_ARGS__)
 
 typedef struct judgement {
     int threshold;
@@ -75,123 +75,17 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int score) {
     cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
     cs_string* old = get_text(scorePointer->text);
 
-
-    log("PRE DUMP AT: %i", (int)old->str);
-    for (int i = 0; i < 50; i++) {
-        log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
-    }
-    log("Attempting to make new string and construct it...");
-    // SETUP STRING
-    // System.String.FastAllocateString (and then constructor)
-    cs_string* (*allocate_str)(int) = (void*)getRealOffset(ALLOCATE_STRING_OFFSET);
-    cs_string* judgement_cs = allocate_str(strlen(best.text));
-    log("Attempting to construct judgement_cs string...");
-    // System.String.ctor(char c, int length): 0x97D778
-    void (*ctor_string)(unsigned short, int) = (void*)getRealOffset(0x97D778);
-    ctor_string(44, strlen(best.text));
-    log("Attempting to set judgement_cs text...");
-    setcsstr(judgement_cs, best.text, strlen(best.text));
-    // cs_string* judgement_cs = createcsstr(best.text, strlen(best.text));
-    // setcsstr(judgement_cs, best.text, strlen(best.text));
+    log("Attempting to create judgement_cs string...");
+    cs_string* judgement_cs = createcsstr(best.text, strlen(best.text));
     log("Attempting to concat judgement text and old text...");
     // System.string.Concat: 0x972F2C
     cs_string* (*concat)(cs_string*, cs_string*) = (void*)getRealOffset(CONCAT_STRING_OFFSET);
-    cs_string* newText = concat(judgement_cs, old);    
-    log("AFTER DUMP AT: %i", (int)old->str);
-    for (int i = 0; i < 50; i++) {
-        log("Byte at %i is: %i", (int)newText->str + i, *(char*)((int)newText->str + i));
-    }
-
+    cs_string* newText = concat(judgement_cs, old);
 
     log("Calling set_text to attempt to fix stuff...");
     // TMP_Text.set_text: 0x510D90
     void (*set_text)(void*, cs_string*) = (void*)getRealOffset(0x510D90);
     set_text(scorePointer->text, newText);
-    log("Freeing old judgement_cs...");
-    free(judgement_cs);
-    // We also can toss the old text
-    log("Freeing old text...");
-    free(old);
-    // log("Attempting to create new C# string...");
-    // cs_string* judgement_cs = malloc(sizeof(cs_string));
-    // // log("Attempting to copy old c# string...");
-    // // copycsstr(judgement_cs, old);
-    // log("Attempting to set new string to judgement text...");
-    // log("Judgement text length: %i", (unsigned int)strlen(best.text));
-    // setcsstr(judgement_cs, best.text, strlen(best.text));
-    // log("PRE-OVERWRITE DUMP AT: %i", (int)judgement_cs->str);
-    // for (int i = 0; i < 50; i++) {
-    //     log("Byte at %i is: %i", (int)judgement_cs->str + i, *(char*)((int)judgement_cs->str + i));
-    // }
-    // log("Attempting to overwrite old text with newText...");
-    // setcswstr(old, newText->str, newText->len);
-    // log("Freeing new text...");
-    // free(judgement_cs);
-    // // FOR NOW, LET'S SEE IF WE CAN JUST COMPLETELY OVERWRITE THE TEXT TO SOMETHING DIFFERENT
-    // log("Attempting to store old text...");
-    // // THIS IS SUPER SCARY AND A COMPLETE HACK BUT IF IT WORKS, IT WORKS
-    // int oLen = old->len;
-    // log("Old length of string: %i", oLen);
-    // unsigned short score1 = old->str[0];
-    // unsigned short score2;
-    // unsigned short score3;
-    // log("Saved score: %i", score1);
-    // if (oLen >= 2) {
-    //     score2 = old->str[1];
-    //     log("Saved score: %i", score2);
-    // }
-    // if (oLen >= 3) {
-    //     score3 = old->str[2];
-    //     log("Saved score: %i", score3);
-    // }
-    // // char* oldText;
-    // // csstrtostr(old, oldText);
-    
-    // log("Attempting to set text to judgement...");
-    // // strcat(oldText, best.text);
-    // // setcsstr(old, oldText);
-    // // setcsstr(old, best.text);
-
-    // log("Attempting to get length of judgement str");
-    // int strL = strlen(best.text);
-    // log("String length: %i", strL);
-    // log("PRE-OVERWRITE DUMP AT: %i", (int)old->str);
-    // for (int i = 0; i < 50; i++) {
-    //     log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
-    // }
-    // for (int i = 0; i < strL; i++) {
-    //     old->str[i] = (unsigned short)best.text[i];
-    //     old->len += 1;
-    // }
-    // log("Appending score text...");
-    // old->str[old->len] = score1;
-    // log("Appended: %i", old->str[old->len]);
-    // old->len += 1;
-    // if (oLen >= 2) {
-    //     old->str[old->len] = score2;
-    //     log("Appended: %i", old->str[old->len]);
-    //     old->len += 1;
-    // }
-    // if (oLen >= 3) {
-    //     old->str[old->len] = score3;
-    //     log("Appended: %i", old->str[old->len]);
-    //     old->len += 1;
-    // }
-    // log("New length: %i", old->len);
-    // log("POST-OVERWRITE DUMP AT: %i", (int)old->str);
-    // for (int i = 0; i < 50; i++) {
-    //     log("Byte at %i is: %i", (int)old->str + i, *(char*)((int)old->str + i));
-    // }
-
-    // old->str[0] = (short)L'M';
-    // old->str[1] = (short)L'Y';
-    // old->str[2] = (short)L' ';
-    // old->str[3] = (short)L'C';
-    // old->str[4] = (short)L'U';
-    // old->str[5] = (short)L'S';
-    // old->str[6] = (short)L'T';
-    // old->str[7] = (short)L'O';
-    // old->str[8] = (short)L'M';
 
     log("Complete!");
 }
@@ -200,21 +94,6 @@ MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void*
     log("Called RawScoreWithoutMultiplier Hook!");
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
-
-// MAKE_HOOK(init_and_present, 0x132307C, void, FlyingScoreEffect* self, void* noteCut, int multiplier, float duration, Vector3 targetPos, Color color, void* saberAfterCutSwingRatingCounter) {
-//     log("Called InitAndPresent Hook!");
-//     log("Attempting to call standard InitAndPresent...");
-//     init_and_present(self, noteCut, multiplier, duration, targetPos, color, saberAfterCutSwingRatingCounter);
-//     int beforeCut = 0;
-//     int afterCut = 0;
-//     int cutDistance = 0;
-//     raw_score_without_multiplier(noteCut, saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
-//     int score = beforeCut + afterCut;
-//     log("RawScore: %i", score);
-//     log("Checking judgements...");
-//     checkJudgements(self, score);
-//     log("Completed InitAndPresent!");
-// }
 
 MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, 0x13233DC, void, FlyingScoreEffect* self, void* saberAfterCutSwingRatingCounter, float rating) {
     log("Called HandleSaberAfterCutSwingRatingCounterDidChangeEvent Hook!");
@@ -261,5 +140,10 @@ __attribute__((constructor)) void lib_main()
     // Creating Way Off judgement
     judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>\n"};
     judgements[5] = way_off;
+
+    // WORKFLOW FOR CONFIG...
+    // IF CONFIG EXISTS AND IS ABLE TO BE LOADED, FREE EXISTING JUDGEMENTS
+    // MALLOC NEW JUDGEMENTS OF LENGTH L (WHERE L IS SIZE OF CONFIG JUDGEMENTS)
+    // ITERATE OVER EACH, CREATE JUDGEMENTS
     log("Created default judgements!");
 }
