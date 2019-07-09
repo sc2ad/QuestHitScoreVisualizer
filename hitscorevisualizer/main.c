@@ -220,14 +220,6 @@ typedef enum judgementerr {
     JUDGEMENT_MINOR_VERSION_ERROR = -4
 } judgementerr_t;
 
-int loadjudgementsfile(const char* filename) {
-    const char* js = readfile(filename);
-    if (js) {
-        return loadjudgements(js);
-    }
-    return PARSE_ERROR_FILE_DOES_NOT_EXIST;
-}
-
 int loadjudgements(const char* js) {
     jsmntok_t* tokens = malloc(MAX_JSON_TOKENS * sizeof(jsmntok_t));
 
@@ -305,6 +297,14 @@ int loadjudgements(const char* js) {
     }
     createdefault();
     return JUDGEMENT_JSON_ERROR;
+}
+
+int loadjudgementsfile(const char* filename) {
+    const char* js = readfile(filename);
+    if (js) {
+        return loadjudgements(js);
+    }
+    return PARSE_ERROR_FILE_DOES_NOT_EXIST;
 }
 
 void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCut, int cutDistance) {
