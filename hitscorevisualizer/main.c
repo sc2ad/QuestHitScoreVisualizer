@@ -18,7 +18,7 @@
 #endif
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.5] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.7] " __VA_ARGS__)
 
 #define MAX_JSON_TOKENS 512
 #define CONFIG_FILE "HitScoreVisualizerConfig.json"
@@ -47,6 +47,11 @@ typedef struct judgement {
     char fade;
 } judgement_t;
 
+typedef struct judgement_segment {
+    int threshold;
+    char* text;
+} judgement_segment_t;
+
 typedef enum DisplayMode {
     DISPLAY_MODE_FORMAT = 0,
     DISPLAY_MODE_NUMERIC = 1,
@@ -57,6 +62,13 @@ typedef enum DisplayMode {
 
 judgement_t* judgements;
 int judgements_count = 0;
+judgement_segment_t* beforeCutAngleJudgements;
+int beforeCut_count = 0;
+judgement_segment_t* accuracyJudgements;
+int accuracy_count = 0;
+judgement_segment_t* afterCutAngleJudgements;
+int afterCut_count = 0;
+
 DisplayMode_t display_mode;
 
 void createdefaultjson(const char* filename) {
@@ -126,6 +138,33 @@ void createdefaultjson(const char* filename) {
     "\t\t],\n"
     "\t\t\"fade\": true\n"
     "\t}\n"
+    "\t],\n"
+    "\t\"beforeCutAngleJudgments\": [\n"
+    "\t{\n"
+    "\t\t\"threshold\": 70,\n"
+    "\t\t\"text\": \"+\"\n"
+    "\t},\n"
+    "\t{\n"
+    "\t\t\"text\": \" \"\n"
+    "\t}\n"
+    "\t],\n"
+    "\t\"accuracyJudgments\": [\n"
+    "\t{\n"
+    "\t\t\"threshold\": 15,\n"
+    "\t\t\"text\": \"+\"\n"
+    "\t},\n"
+    "\t{\n"
+    "\t\t\"text\": \" \"\n"
+    "\t}\n"
+    "\t],\n"
+    "\t\"afterCutAngleJudgments\": [\n"
+    "\t{\n"
+    "\t\t\"threshold\": 30,\n"
+    "\t\t\"text\": \"+\"\n"
+    "\t},\n"
+    "\t{\n"
+    "\t\t\"text\": \" \"\n"
+    "\t}\n"
     "\t]\n"
     "}";
     int r = writefile(filename, js);
@@ -163,6 +202,33 @@ void createdefault() {
     log("Created default judgements!");
 }
 
+void createjudgementsegments(const char* js, jsmntok_t* tokens, judgement_segment_t* segments, int current, int count) {
+    int offset = 2;
+    for (int j = 0; j < count; j++) {
+        // For each segment
+        jsmntok_t obj = tokens[current + j + offset];
+        segments[j].threshold = 0;
+        // LENGTH OF A SEGMENT STRUCT (ALL KEYS AND VALUES)
+        int len = 4;
+        for (int q = 0; q < len; q++) {
+            // For each key, value in the segment
+            char* buffer = bufferfromtoken(js, tokens[current + j + offset + q]);
+            if (strcmp(buffer, "text") == 0) {
+                segments[j].text = bufferfromtoken(js, tokens[current + j + offset + q + 1]);
+                q += 1;
+                continue;
+            }
+            else if (strcmp(buffer, "threshold") == 0) {
+                // convert value buffer string to integer
+                segments[j].threshold = intfromjson(js, tokens[current + j + offset + q + 1]);
+                q += 1;
+                continue;
+            }
+        }
+        offset += len;
+    }
+}
+
 void createjudgements(const char* js, jsmntok_t* tokens, judgement_t* judgements, int current) {
     int offset = 2;
     for (int j = 0; j < judgements_count; j++) {
@@ -171,7 +237,7 @@ void createjudgements(const char* js, jsmntok_t* tokens, judgement_t* judgements
         judgements[j].threshold = 0;
         printf("TRYING TOKEN: %i\n", current + j + offset);
         // LENGTH OF A JUDGEMENT STRUCT (ALL KEYS AND VALUES)
-        int len;
+        int len = 10;
         if (judgementObj.size == 4) {
             len = 12;
         } else if (judgementObj.size == 3) {
@@ -249,7 +315,7 @@ int loadjudgements(const char* js) {
                 i++;
                 continue;
             }
-            if (strcmp(buffer, "minorVersion") == 0) {
+            else if (strcmp(buffer, "minorVersion") == 0) {
                 // MinorVersion Key
                 char* value = bufferfromtoken(js, tokens[i + 1]);
                 if (strcmp(value, "2") < 0 || version_match != '\1') {
@@ -262,7 +328,7 @@ int loadjudgements(const char* js) {
                 i++;
                 continue;
             }
-            if (strcmp(buffer, "displayMode") == 0) {
+            else if (strcmp(buffer, "displayMode") == 0) {
                 // DisplayMode
                 char* temp = bufferfromtoken(js, tokens[i + 1]);
                 if (strcmp(temp, "format") == 0) {
@@ -279,7 +345,7 @@ int loadjudgements(const char* js) {
                 i++;
                 continue;
             }
-            if (strcmp(buffer, "judgements") == 0) {
+            else if (strcmp(buffer, "judgements") == 0) {
                 if (version_match == '\0') {
                     // Version doesn't match. Return default.
                     createdefault();
@@ -288,23 +354,63 @@ int loadjudgements(const char* js) {
                 judgements_count = tokens[i + 1].size;
                 judgements = malloc(judgements_count * sizeof(judgement_t));
                 createjudgements(js, tokens, judgements, i);
-                return 0;
+            }
+            else if (strcmp(buffer, "beforeCutAngleJudgments") == 0) {
+                if (version_match == '\0') {
+                    // Version doesn't match. Return default.
+                    createdefault();
+                    return JUDGEMENT_VERSION_ERROR;
+                }
+                beforeCut_count = tokens[i + 1].size;
+                beforeCutAngleJudgements = malloc(beforeCut_count * sizeof(judgement_segment_t));
+                createjudgementsegments(js, tokens, beforeCutAngleJudgements, i, beforeCut_count);
+            }
+            else if (strcmp(buffer, "accuracyJudgments") == 0) {
+                if (version_match == '\0') {
+                    // Version doesn't match. Return default.
+                    createdefault();
+                    return JUDGEMENT_VERSION_ERROR;
+                }
+                accuracy_count = tokens[i + 1].size;
+                accuracyJudgements = malloc(accuracy_count * sizeof(judgement_segment_t));
+                createjudgementsegments(js, tokens, accuracyJudgements, i, accuracy_count);
+            }
+            else if (strcmp(buffer, "afterCutAngleJudgments") == 0) {
+                if (version_match == '\0') {
+                    // Version doesn't match. Return default.
+                    createdefault();
+                    return JUDGEMENT_VERSION_ERROR;
+                }
+                afterCut_count = tokens[i + 1].size;
+                afterCutAngleJudgements = malloc(afterCut_count * sizeof(judgement_segment_t));
+                createjudgementsegments(js, tokens, afterCutAngleJudgements, i, afterCut_count);
             }
             // This is a key
-        } else {
-            // This is a value
         }
+    }
+    if (judgements && beforeCutAngleJudgements && accuracyJudgements && afterCutAngleJudgements) {
+        return 0;
     }
     createdefault();
     return JUDGEMENT_JSON_ERROR;
 }
-
 int loadjudgementsfile(const char* filename) {
     const char* js = readfile(filename);
     if (js) {
         return loadjudgements(js);
     }
     return PARSE_ERROR_FILE_DOES_NOT_EXIST;
+}
+
+char* getBestSegment(judgement_segment_t* segments, int totalCount, int comparison) {
+    judgement_segment_t best = segments[totalCount - 1];
+    for (int i = totalCount - 2; i >= 0; i--) {
+        if (segments[i].threshold > comparison) {
+            break;
+        }
+        best = segments[i];
+    }
+    return best.text;
 }
 
 void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCut, int cutDistance) {
@@ -366,8 +472,15 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCu
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
         sprintf(buffer, "%i", afterCut);
         judgement_cs = replace(judgement_cs, createcsstr("%a", 2), createcsstr(buffer, strlen(buffer)));
-        // %B, %C, %A
-        // TODO
+        // %B
+        char* bestBeforeSeg = getBestSegment(beforeCutAngleJudgements, beforeCut_count, beforeCut);
+        judgement_cs = replace(judgement_cs, createcsstr("%B", 2), createcsstr(bestBeforeSeg, strlen(bestBeforeSeg)));
+        // %C
+        char* bestCutAcc = getBestSegment(accuracyJudgements, accuracy_count, cutDistance);
+        judgement_cs = replace(judgement_cs, createcsstr("%C", 2), createcsstr(bestCutAcc, strlen(bestCutAcc)));
+        // %A
+        char* bestAfterSeg = getBestSegment(afterCutAngleJudgements, afterCut_count, afterCut);
+        judgement_cs = replace(judgement_cs, createcsstr("%A", 2), createcsstr(bestAfterSeg, strlen(bestAfterSeg)));
         // %s
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
         sprintf(buffer, "%i", score);
