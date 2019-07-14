@@ -10,7 +10,9 @@
     "category": "Gameplay",
     "gameVersion": "1.1.0",
     "version": "1.4.8.0",
-    "links": { "project-home": "https://github.com/sc2ad/QuestHitScoreVisualizer"},
+    "links": {
+        "project-home": "https://github.com/sc2ad/QuestHitScoreVisualizer"
+    },
     "platform": "Quest",
     "components": [
       {
