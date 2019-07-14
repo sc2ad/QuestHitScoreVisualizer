@@ -181,7 +181,8 @@ void createdefaultjson(const char* filename) {
     "\t{\n"
     "\t\t\"text\": \" \"\n"
     "\t}\n"
-    "\t]\n"
+    "\t],\n"
+    "\t\"useJson\": true\n"
     "}";
     int r = writefile(filename, js);
     if (r == 0) {
@@ -315,7 +316,8 @@ typedef enum judgementerr {
     JUDGEMENT_JSON_ERROR = -10,
     JUDGEMENT_VERSION_ERROR = -2,
     JUDGEMENT_MAJOR_VERSION_ERROR = -3,
-    JUDGEMENT_MINOR_VERSION_ERROR = -4
+    JUDGEMENT_MINOR_VERSION_ERROR = -4,
+    JUDGEMENT_JSON_UNUSED = -50
 } judgementerr_t;
 
 int loadjudgements(const char* js) {
@@ -334,6 +336,13 @@ int loadjudgements(const char* js) {
         // Create substring
         char* buffer = bufferfromtoken(js, tokens[i]);
         if (tokens[i].size > 0) {
+            if (strcmp(buffer, "useJson") == 0) {
+                char value = boolfromjson(js, tokens[i + 1]);
+                if (value == '\0') {
+                    createdefault();
+                    return JUDGEMENT_JSON_UNUSED;
+                }
+            }
             if (strcmp(buffer, "majorVersion") == 0) {
                 // MajorVersion Key
                 char* value = bufferfromtoken(js, tokens[i + 1]);
@@ -560,6 +569,22 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCu
     log("Complete!");
 }
 
+void loadall() {
+    int r = loadjudgementsfile(CONFIG_FILE);
+    if (r == PARSE_ERROR_FILE_DOES_NOT_EXIST) {
+        log("File at path: %s does not exist!", CONFIG_FILE);
+        createdefaultjson(CONFIG_FILE);
+    } else if (r == JUDGEMENT_JSON_ERROR) {
+        log("Judgement JSON Error! Invalid JSON at path: %s", CONFIG_FILE);
+    } else if (r == JUDGEMENT_VERSION_ERROR) {
+        log("Judgement JSON Version mismatch! Expected version >=2.2.0! At path: %s", CONFIG_FILE);
+    } else if (r == JUDGEMENT_JSON_UNUSED) {
+        log("Not using JSON!");
+    } else if (r == 0) {
+        log("Loaded judgements sucessfully!");
+    }
+}
+
 MAKE_HOOK(raw_score_without_multiplier, RawScoreWithoutMulitplier_offset, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
     log("Called RawScoreWithoutMultiplier Hook!");
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
@@ -592,19 +617,9 @@ __attribute__((constructor)) void lib_main()
     // Attempt to add and create judgements
     // Attempt to find judgements
     if (fileexists(CONFIG_FILE) == '\1') {
-        int r = loadjudgementsfile(CONFIG_FILE);
-        if (r == PARSE_ERROR_FILE_DOES_NOT_EXIST) {
-            log("File at path: %s does not exist!", CONFIG_FILE);
-            createdefaultjson(CONFIG_FILE);
-        } else if (r == JUDGEMENT_JSON_ERROR) {
-            log("Judgement JSON Error! Invalid JSON at path: %s", CONFIG_FILE);
-        } else if (r == JUDGEMENT_VERSION_ERROR) {
-            log("Judgement JSON Version mismatch! Expected version >=2.2.0! At path: %s", CONFIG_FILE);
-        } else if (r == 0) {
-            log("Loaded judgements sucessfully!");
-        }
+        loadall();
     } else {
         createdefaultjson(CONFIG_FILE);
-        createdefault();
+        loadall();
     }
 }
