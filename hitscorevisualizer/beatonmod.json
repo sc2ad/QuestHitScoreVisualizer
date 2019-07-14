@@ -1,0 +1,26 @@
+{
+    "id": "HitScoreVisualizer",
+    "name": "Hit Score Visualizer",
+    "author": "Sc2ad",
+    "description": [
+        "Adds color to the scores shown when hitting a block relative to the quality of the hit",
+        "Based off of ratsby#1888's HitScoreVisualizer for the PC with the following description:",
+        "Visualizes the scores of your hits! Overly complex config options! Numbers? All the pros use it, except the ones who don't. (But they should.)"
+    ],
+    "category": "Gameplay",
+    "gameVersion": "1.1.0",
+    "version": "1.4.8.0",
+    "links": { "project-home": "https://github.com/sc2ad/QuestHitScoreVisualizer"},
+    "platform": "Quest",
+    "components": [
+      {
+        "Type": "HookMod",
+        "InstallAction": {
+          "InstallLibraryFile": "libhitscorevisualizer.so"
+        },
+        "UninstallAction": {
+          "RemoveLibraryFile": "libhitscorevisualizer.so"
+        }
+      }
+    ]
+  }

@@ -18,10 +18,25 @@
 #endif
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.7] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.8] " __VA_ARGS__)
 
 #define MAX_JSON_TOKENS 512
-#define CONFIG_FILE "HitScoreVisualizerConfig.json"
+#define CONFIG_FILE "/sdcard/Android/data/com.beatgames.beatsaber/files/mods/HitScoreVisualizerConfig.json"
+
+// TMP_Text.set_richText: 0x512540
+#define TMP_Text_set_richText_offset 0x512540
+// TMP_Text.set_enableWordWrapping: 0x51205C
+#define TMP_Text_set_enableWordWrapping_offset 0x51205C
+// TMP_Text.set_overflowMode: 0x512128
+#define TMP_Text_set_oferflowMode_offset 0x512128
+// TMP_Text.get_text: 0x510D88
+#define TMP_Text_get_text_offset 0x510D88
+// TMP_Text.set_text: 0x510D90
+#define TMP_Text_set_text_offset 0x510D90
+// ScoreController.RawScoreWithoutMultiplier: 0x48C248
+#define RawScoreWithoutMulitplier_offset 0x48C248
+// HandleSaberAfterCutSwingRatingCounterDidChangeEvent: 0x13233DC
+#define HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset 0x13233DC
 
 typedef struct {
     // First field begins at 0x58, could fill in useless
@@ -180,25 +195,41 @@ void createdefault() {
     judgements_count = 6;
     judgements = malloc(judgements_count * sizeof(judgement_t));
     // Creating Fantastic judgement
-    judgement_t fantastic = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!\n", '\0'};
+    judgement_t fantastic = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!", '\0'};
     judgements[0] = fantastic;
     // Creating Excellent judgement
-    judgement_t excellent = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>\n", '\1'};
+    judgement_t excellent = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>", '\1'};
     judgements[1] = excellent;
     // Creating Great judgement
-    judgement_t great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>\n", '\1'};
+    judgement_t great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>", '\1'};
     judgements[2] = great;
     // Creating Good judgement
-    judgement_t good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>\n", '\1'};
+    judgement_t good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>", '\1'};
     judgements[3] = good;
     // Creating Decent judgement
-    judgement_t decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>\n", '\1'};
+    judgement_t decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>", '\1'};
     judgements[4] = decent;
     // Creating Way Off judgement
-    judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>\n", '\1'};
+    judgement_t way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>", '\1'};
     judgements[5] = way_off;
     // Set displaymode
-    display_mode = DISPLAY_MODE_FORMAT;
+    display_mode = DISPLAY_MODE_TEXTONTOP;
+    // Set BeforeCutSegments
+    beforeCut_count = 2;
+    beforeCutAngleJudgements = malloc(beforeCut_count * sizeof(judgement_segment_t));
+    beforeCutAngleJudgements[0] = (judgement_segment_t) {70, "+"};
+    beforeCutAngleJudgements[1] = (judgement_segment_t) {0, " "};
+    // Set AccuracySegments
+    accuracy_count = 2;
+    accuracyJudgements = malloc(accuracy_count * sizeof(judgement_segment_t));
+    accuracyJudgements[0] = (judgement_segment_t) {15, "+"};
+    accuracyJudgements[1] = (judgement_segment_t) {0, " "};
+    // Set AfterCut
+    afterCut_count = 2;
+    afterCutAngleJudgements = malloc(afterCut_count * sizeof(judgement_segment_t));
+    afterCutAngleJudgements[0] = (judgement_segment_t) {30, "+"};
+    afterCutAngleJudgements[1] = (judgement_segment_t) {0, " "};
+
     log("Created default judgements!");
 }
 
@@ -431,20 +462,20 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCu
     scorePointer->color.a = best.a;
     log("Modified color!");
     log("Setting rich text...");
-    // TMP_Text.set_richText: 0x512540
-    void (*set_richText)(void*, char) = (void*)getRealOffset(0x512540);
+    
+    void (*set_richText)(void*, char) = (void*)getRealOffset(TMP_Text_set_richText_offset);
     set_richText(scorePointer->text, 0x1);
     log("Disabling word wrap...");
-    // TMP_Text.set_enableWordWrapping: 0x51205C
-    void (*set_enableWordWrapping)(void*, char) = (void*)getRealOffset(0x51205C);
+    
+    void (*set_enableWordWrapping)(void*, char) = (void*)getRealOffset(TMP_Text_set_enableWordWrapping_offset);
     set_enableWordWrapping(scorePointer->text, 0x0);
     log("Setting overflow option...");
-    // TMP_Text.set_overflowMode: 0x512128
-    void (*set_overflowMode)(void*, int) = (void*)getRealOffset(0x512128);
+    
+    void (*set_overflowMode)(void*, int) = (void*)getRealOffset(TMP_Text_set_oferflowMode_offset);
     set_overflowMode(scorePointer->text, 0x0);
     log("Attempting to get text...");
-    // TMP_Text.get_text: 0x510D88
-    cs_string* (*get_text)(void*) = (void*)getRealOffset(0x510D88);
+    
+    cs_string* (*get_text)(void*) = (void*)getRealOffset(TMP_Text_get_text_offset);
     cs_string* old = get_text(scorePointer->text);
 
     log("Attempting to create judgement_cs string...");
@@ -508,6 +539,7 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCu
         log("Attempting to concat old text and judgement text...");
         newText = concat(temp, judgement_cs);
         break;
+    case DISPLAY_MODE_TEXTONTOP:
     default:
         // Text on top
         log("Displaying judgement text on top!");
@@ -520,19 +552,19 @@ void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCu
     
 
     log("Calling set_text...");
-    // TMP_Text.set_text: 0x510D90
-    void (*set_text)(void*, cs_string*) = (void*)getRealOffset(0x510D90);
+    
+    void (*set_text)(void*, cs_string*) = (void*)getRealOffset(TMP_Text_set_text_offset);
     set_text(scorePointer->text, newText);
 
     log("Complete!");
 }
 
-MAKE_HOOK(raw_score_without_multiplier, 0x48C248, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
+MAKE_HOOK(raw_score_without_multiplier, RawScoreWithoutMulitplier_offset, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCutRawScore, int* afterCutRawScore, int* cutDistanceRawScore) {
     log("Called RawScoreWithoutMultiplier Hook!");
     raw_score_without_multiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCutRawScore, afterCutRawScore, cutDistanceRawScore);
 }
 
-MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, 0x13233DC, void, FlyingScoreEffect* self, void* saberAfterCutSwingRatingCounter, float rating) {
+MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset, void, FlyingScoreEffect* self, void* saberAfterCutSwingRatingCounter, float rating) {
     log("Called HandleSaberAfterCutSwingRatingCounterDidChangeEvent Hook!");
     log("Attempting to call standard HandleSaberAfterCutSwingRatingCounterDidChangeEvent...");
     HandleSaberAfterCutSwingRatingCounterDidChangeEvent(self, saberAfterCutSwingRatingCounter, rating);
@@ -572,5 +604,6 @@ __attribute__((constructor)) void lib_main()
         }
     } else {
         createdefaultjson(CONFIG_FILE);
+        createdefault();
     }
 }
