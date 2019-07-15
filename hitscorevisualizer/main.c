@@ -18,7 +18,7 @@
 #endif
 
 #undef log
-#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.8.1] " __VA_ARGS__)
+#define log(...) __android_log_print(ANDROID_LOG_INFO, "QuestHook", "[HitScoreVisualizer v1.4.8.5] " __VA_ARGS__)
 
 #define MAX_JSON_TOKENS 512
 #define CONFIG_FILE "/sdcard/Android/data/com.beatgames.beatsaber/files/mods/HitScoreVisualizerConfig.json"
@@ -90,7 +90,7 @@ void createdefaultjson(const char* filename) {
     const char* js = "\n{\n"
     "\t\"majorVersion\": 2,\n"
     "\t\"minorVersion\": 2,\n"
-    "\t\"displayMode\": \"textOnTop\",\n"
+    "\t\"displayMode\": \"format\",\n"
     "\t\"judgements\":[\n"
     "\t{\n"
     "\t\t\"threshold\": 115,\n"
