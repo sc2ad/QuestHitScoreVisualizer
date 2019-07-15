@@ -1,0 +1,28 @@
+{
+    "id": "TransparentWalls",
+    "name": "Transparent Walls",
+    "author": "Sc2ad",
+    "description": [
+        "Based off of the Transparent Walls mod.",
+        "Please forgive me for not having all of the proper credits here for people.",
+        "If you are upset, please DM me on Discord: Sc2ad#8836"
+    ],
+    "category": "Gameplay",
+    "gameVersion": "1.1.0",
+    "version": "0.0.0.5",
+    "links": {
+        "project-home": "https://github.com/sc2ad/QuestHitScoreVisualizer"
+    },
+    "platform": "Quest",
+    "components": [
+      {
+        "Type": "HookMod",
+        "InstallAction": {
+          "InstallLibraryFile": "libtransparentwalls.so"
+        },
+        "UninstallAction": {
+          "RemoveLibraryFile": "libtransparentwalls.so"
+        }
+      }
+    ]
+  }
