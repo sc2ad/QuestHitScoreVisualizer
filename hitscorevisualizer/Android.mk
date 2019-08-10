@@ -33,10 +33,10 @@ LOCAL_MODULE := hook
 
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"QuestHitScoreVisualizer"' -DVERSION='"1.5.0"'
+LOCAL_CFLAGS    := -DMOD_ID='"HitScoreVisualizer"' -DVERSION='"1.9.0"'
 LOCAL_MODULE    := hitscorevisualizer
 # LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_CPPFLAGS := -std=c++2a
-LOCAL_SRC_FILES := main.cpp ../beatsaber-hook/shared/utils/utils.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
+LOCAL_SRC_FILES := main.cpp ../beatsaber-hook/shared/utils/utils.cpp ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)
