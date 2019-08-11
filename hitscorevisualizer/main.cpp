@@ -89,16 +89,16 @@ void createdefault() {
     judgement excellent = 
     config.judgements[1] = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>", true};
     // Creating Great judgement
-    judgement great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>", '\1'};
+    judgement great = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>", true};
     config.judgements[2] = great;
     // Creating Good judgement
-    judgement good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>", '\1'};
+    judgement good = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>", true};
     config.judgements[3] = good;
     // Creating Decent judgement
-    judgement decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>", '\1'};
+    judgement decent = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>", true};
     config.judgements[4] = decent;
     // Creating Way Off judgement
-    judgement way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>", '\1'};
+    judgement way_off = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>", true};
     config.judgements[5] = way_off;
     // Set displaymode
     config.displayMode = DISPLAY_MODE_TEXTONTOP;
@@ -226,6 +226,7 @@ int loadjudgements() {
         }
         if (!json_doc["useJson"].GetBool()) {
             // Exit without parsing the JSON
+            log(INFO, "useJson is false, loading candy crush config!");
             return -1;
         }
     }
@@ -315,13 +316,15 @@ int loadjudgements() {
             }
         }
     }
-    if (config.majorVersion < 2 || (config.majorVersion == 2 && config.minorVersion < 2) || (config.majorVersion == 2 && config.minorVersion == 2 && config.patchVersion < 0)) {
-        // VERSION ERROR
-        return -1;
-    }
     if (config.judgements.capacity() == 0) {
         // DID NOT LOAD JUDGEMENTS
+        log(INFO, "Did not load all required information from JSON. Empty config file?");
         return -2;
+    }
+    if (config.majorVersion < 2 || (config.majorVersion == 2 && config.minorVersion < 2) || (config.majorVersion == 2 && config.minorVersion == 2 && config.patchVersion < 0)) {
+        // VERSION ERROR
+        log(INFO, "Version mismatch! Version is: %i.%i.%i but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
+        return -1;
     }
     return 0;
 }
@@ -575,8 +578,10 @@ void loadall() {
     int r = loadjudgements();
     if (r == -2) {
         createdefaultjson();
+        log(INFO, "Loading default JSON...");
         r = loadjudgements();
     } if (r == -1) {
+        log(INFO, "Loading candy crush config...");
         createdefault();
     } if (r == -2) {
         log(CRITICAL, "COULD NOT LOAD DEFAULT JSON!");
@@ -588,7 +593,15 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     log(DEBUG, "Attempting to call standard HandleSaberAfterCutSwingRatingCounterDidChangeEvent...");
     HandleSaberAfterCutSwingRatingCounterDidChangeEvent(self, saberAfterCutSwingRatingCounter, rating);
     auto klass = il2cpp_utils::GetClassFromName("", "ScoreController");
+    if (!klass) {
+        log(CRITICAL, "Could not find ScoreController class!");
+        return;
+    }
     auto rawScoreWithoutMultiplier = il2cpp_functions::class_get_method_from_name(klass, "RawScoreWithoutMultiplier", 5);
+    if (!rawScoreWithoutMultiplier) {
+        log(CRITICAL, "Could not find ScoreController.RawScoreWithoutMultiplier method! (with 5 params)");
+        return;
+    }
     int beforeCut = 0;
     int afterCut = 0;
     int cutDistance = 0;
