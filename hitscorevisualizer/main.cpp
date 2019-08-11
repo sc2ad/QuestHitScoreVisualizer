@@ -600,6 +600,7 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     auto rawScoreWithoutMultiplier = il2cpp_functions::class_get_method_from_name(klass, "RawScoreWithoutMultiplier", 5);
     if (!rawScoreWithoutMultiplier) {
         log(CRITICAL, "Could not find ScoreController.RawScoreWithoutMultiplier method! (with 5 params)");
+        il2cpp_utils::LogClass(klass);
         return;
     }
     int beforeCut = 0;
