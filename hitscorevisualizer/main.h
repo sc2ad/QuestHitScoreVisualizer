@@ -10,6 +10,7 @@
 
 #include "../beatsaber-hook/shared/utils/rapidjson-utils.h"
 #include "../beatsaber-hook/shared/utils/utils.h"
+#include "../beatsaber-hook/shared/dumps/UnityEngine_Object.h"
 
 #ifndef __cplusplus
 #define bool uint8_t
@@ -49,7 +50,7 @@ typedef struct Config {
     std::vector<judgement_segment> afterCutAngleJudgements;
 } Config;
 
-typedef struct FlyingObjectEffect : Il2CppObject {
+typedef struct FlyingObjectEffect : UnityEngine_Object::Class {
     // Fields
 	void* _moveAnimationCurve; // 0xC
 	float _shakeFrequency; // 0x10
@@ -62,17 +63,17 @@ typedef struct FlyingObjectEffect : Il2CppObject {
 	Vector3 _startPos; // 0x38
 	Vector3 _targetPos; // 0x44
 	float _duration; // 0x50
-	bool _shake; // 0x54
+	uint32_t _shake; // 0x54
 } FlyingObjectEffect;
 
 typedef struct FlyingScoreEffect : FlyingObjectEffect {
-    void* fadeAnimationCurve;
-    void* maxCutDistanceScoreIndicator;
-    void* text; // TextMeshPro (base class: TMP_Text)
-    Color color;
-    float colorAMultiplier;
-    void* noteCutInfo;
-    void* saberAfterCutSwingRatingCounter;
+    void* fadeAnimationCurve; // 0x58
+    void* maxCutDistanceScoreIndicator; // 0x5C
+    void* text; // TextMeshPro (base class: TMP_Text) // 0x60
+    Color color; // 0x64
+    float colorAMultiplier; // 0x74
+    void* noteCutInfo; // 0x78
+    void* saberAfterCutSwingRatingCounter; // 0x7C
     
 } FlyingScoreEffect;
 
