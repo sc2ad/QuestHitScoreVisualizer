@@ -14,7 +14,7 @@
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 
 #define MOD_ID "HitScoreVisualizer"
-#define VERSION "1.9.2"
+#define VERSION "1.9.3"
 
 #define LOG_LEVEL CRITICAL | ERROR | WARNING | INFO | DEBUG
 
@@ -24,11 +24,11 @@
 #include "../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
 #include "main.h"
 
-#define HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset 0x51CCAC
-#define GetBeatmapDataFromBeatmapSaveData_offset 0x47FEBC
-#define RawScoreWithoutMultiplier_offset 0x543A58
+#define HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset 0xA4D338
+#define GetBeatmapDataFromBeatmapSaveData_offset 0x9A1D0C
+#define RawScoreWithoutMultiplier_offset 0xA0DA14
 
-static Config config;
+static struct Config config;
 static bool loadedConfig = false;
 
 static void addJudgement(rapidjson::MemoryPoolAllocator<> &alloc, rapidjson::GenericArray<false, rapidjson::Value> arr, int thresh, std::string_view text, std::vector<float> colors, bool fade = false) {
@@ -224,10 +224,10 @@ static void createdefault() {
     config.afterCutAngleJudgements[1] = {0, " "};
 
     log(DEBUG, "Created default judgements!");
-    log(DEBUG, "Judgements Size: %i", config.judgements.size());
-    log(DEBUG, "BeforeCut Size: %i", config.beforeCutAngleJudgements.size());
-    log(DEBUG, "Accuracy Size: %i", config.accuracyJudgements.size());
-    log(DEBUG, "AfterCut Size: %i", config.afterCutAngleJudgements.size());
+    log(DEBUG, "Judgements Size: %lu", config.judgements.size());
+    log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
+    log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
+    log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
 }
 
 static bool createjudgements(rapidjson::GenericArray<false, rapidjson::Value> arr) {
@@ -305,7 +305,7 @@ static bool createjudgements(rapidjson::GenericArray<false, rapidjson::Value> ar
 
 static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjson::GenericArray<false, rapidjson::Value> arr) {
     int index = 0;
-    log(DEBUG, "Segments array has size: %i", arr.Size());
+    log(DEBUG, "Segments array has size: %lu", arr.Size());
     for (auto& v : arr) {
         if (!v.IsObject()) {
             // ERROR
@@ -471,16 +471,16 @@ static int loadjudgements() {
     }
     if (config.judgements.size() < 1 || config.accuracyJudgements.size() < 1 || config.beforeCutAngleJudgements.size() < 1 || config.afterCutAngleJudgements.size() < 1) {
         // DID NOT LOAD JUDGEMENTS
-        log(INFO, "Config Judgements Size: %i", config.judgements.size());
-        log(INFO, "Config accuracyJudgements Size: %i", config.accuracyJudgements.size());
-        log(INFO, "Config beforeCutAngleJudgements Size: %i", config.beforeCutAngleJudgements.size());
-        log(INFO, "Config afterCutAngleJudgements: %i", config.afterCutAngleJudgements.size());
+        log(INFO, "Config Judgements Size: %lu", config.judgements.size());
+        log(INFO, "Config accuracyJudgements Size: %lu", config.accuracyJudgements.size());
+        log(INFO, "Config beforeCutAngleJudgements Size: %lu", config.beforeCutAngleJudgements.size());
+        log(INFO, "Config afterCutAngleJudgements: %lu", config.afterCutAngleJudgements.size());
         log(INFO, "Did not load all required information from JSON. Empty config file?");
         return -2;
     }
     if (config.majorVersion < 2 || (config.majorVersion == 2 && config.minorVersion < 2) || (config.majorVersion == 2 && config.minorVersion == 2 && config.patchVersion < 0)) {
         // VERSION ERROR
-        log(INFO, "Version mismatch! Version is: %i.%i.%i but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
+        log(INFO, "Version mismatch! Version is: %lu.%lu.%lu but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
         return -1;
     }
     return 0;
@@ -592,7 +592,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         //     log(DEBUG, "Found method with 2 parameters");
         //     log(DEBUG, "Method Name: %s", current->name);
         //     for (int i = 0; i < current->parameters_count; i++) {
-        //         log(DEBUG, "Parameter: %i: %s", i, il2cpp_functions::type_get_name(current->parameters[i].parameter_type));
+        //         log(DEBUG, "Parameter: %lu: %s", i, il2cpp_functions::type_get_name(current->parameters[i].parameter_type));
         //         if (!il2cpp_functions::type_equals(current->parameters[i].parameter_type, il2cpp_functions::class_get_type_const(str_class))) {
         //             goto next_method;
         //         }
@@ -614,17 +614,17 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     }
     else if (!loadedConfig || config.judgements.size() == 0) {
         log(DEBUG, "Config not yet loaded! Loading now...");
-        log(DEBUG, "Judgements Size: %i", config.judgements.size());
-        log(DEBUG, "BeforeCut Size: %i", config.beforeCutAngleJudgements.size());
-        log(DEBUG, "Accuracy Size: %i", config.accuracyJudgements.size());
-        log(DEBUG, "AfterCut Size: %i", config.afterCutAngleJudgements.size());
+        log(DEBUG, "Judgements Size: %lu", config.judgements.size());
+        log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
+        log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
+        log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
         loadall();
         if (loadedConfig) {
             log(DEBUG, "Loaded Config!");
         }
     }
-    log(DEBUG, "Checking judgements for score: %i", score);
-    log(DEBUG, "Config Judgements Size: %i", config.judgements.size());
+    log(DEBUG, "Checking judgements for score: %lu", score);
+    log(DEBUG, "Config Judgements Size: %lu", config.judgements.size());
     log(DEBUG, "0th Item Text: %s", config.judgements[0].text);
     judgement best = config.judgements[config.judgements.size() - 1];
     for (int i = config.judgements.size()-2; i >= 0; i--) {
@@ -633,7 +633,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         best = config.judgements[i];
     }
-    log(DEBUG, "Setting score effect's color to best color with threshold: %i for score: %i", best.threshold, score);
+    log(DEBUG, "Setting score effect's color to best color with threshold: %lu for score: %lu", best.threshold, score);
     // TODO Add fading
     scorePointer->color.r = best.r;
     scorePointer->color.g = best.g;
@@ -677,7 +677,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         log(DEBUG, "Displaying formated text!");
         char buffer[4]; // Max length for score buffers is 3
         // %b
-        sprintf(buffer, "%i", beforeCut);
+        sprintf(buffer, "%lu", beforeCut);
         judgement_cs = replaceBuffer(judgement_cs, "%b", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -685,7 +685,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %c
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%i", cutDistance);
+        sprintf(buffer, "%lu", cutDistance);
         judgement_cs = replaceBuffer(judgement_cs, "%c", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -693,7 +693,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %a
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%i", afterCut);
+        sprintf(buffer, "%lu", afterCut);
         judgement_cs = replaceBuffer(judgement_cs, "%a", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -722,7 +722,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %s
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%i", score);
+        sprintf(buffer, "%lu", score);
         judgement_cs = replaceBuffer(judgement_cs, "%s", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -781,10 +781,10 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     }
 }
 
-MAKE_HOOK(rawScoreWithoutMultiplier, RawScoreWithoutMultiplier_offset, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCut, int* afterCut, int* cutDistance) {
+    MAKE_HOOK(rawScoreWithoutMultiplier, RawScoreWithoutMultiplier_offset, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCut, int* afterCut, int* cutDistance) {
     log(DEBUG, "Called RawScoreWithoutMultiplier!");
     log(DEBUG, "Calling orig...");
-    if (loadedConfig) log(DEBUG, "Loaded Config!");
+    log(DEBUG, "Judgements Size: %lu", config.judgements.size());
     rawScoreWithoutMultiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCut, afterCut, cutDistance);
     log(DEBUG, "SUCCESS!");
 }
@@ -803,7 +803,7 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     if (!il2cpp_functions::initialized) {
         il2cpp_functions::Init();
     }
-    log(DEBUG, "Judgements.Size: %i", config.judgements.size());
+    log(DEBUG, "Judgements.Size: %lu", config.judgements.size());
     log(DEBUG, "Attempting to call standard HandleSaberAfterCutSwingRatingCounterDidChangeEvent...");
     HandleSaberAfterCutSwingRatingCounterDidChangeEvent(self, saberAfterCutSwingRatingCounter, rating);
     log(DEBUG, "Called orig!");
@@ -846,10 +846,12 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     //     return;
     // }
 
+    dump_real(0, 32, self);
+
     rawScoreWithoutMultiplier(self->noteCutInfo, self->saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
     
     int score = beforeCut + afterCut;
-    log(DEBUG, "RawScore: %i", score);
+    log(DEBUG, "RawScore: %lu", score);
     log(DEBUG, "Checking judgements...");
     checkJudgements(self, beforeCut, afterCut, cutDistance);
     log(DEBUG, "Completed HandleSaberAfterCutSwingRatingCounterDidChangeEvent!");

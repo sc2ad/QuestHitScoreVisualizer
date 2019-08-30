@@ -16,7 +16,7 @@
 #
 LOCAL_PATH := $(call my-dir)
 
-TARGET_ARCH_ABI := armeabi-v7a
+TARGET_ARCH_ABI := arm64-v8a
 
 
 include $(CLEAR_VARS)
@@ -33,10 +33,10 @@ LOCAL_MODULE := hook
 
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"HitScoreVisualizer"' -DVERSION='"1.9.2"'
+LOCAL_CFLAGS    := -DMOD_ID='"HitScoreVisualizer"' -DVERSION='"1.9.3"'
 LOCAL_MODULE    := hitscorevisualizer
 # LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_CPPFLAGS := -std=c++2a
-LOCAL_SRC_FILES := ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/customui.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c
+LOCAL_SRC_FILES := ../beatsaber-hook/shared/utils/il2cpp-utils.cpp ../beatsaber-hook/shared/utils/customui.cpp ../beatsaber-hook/shared/utils/utils.cpp main.cpp ../beatsaber-hook/shared/inline-hook/inlineHook.c ../beatsaber-hook/shared/inline-hook/relocate.c ../beatsaber-hook/shared/inline-hook/And64InlineHook.cpp
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)
