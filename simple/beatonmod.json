@@ -1,0 +1,27 @@
+{
+  "id": "Simple",
+  "name": "Simple Placeholder Mod",
+  "author": "Sc2ad",
+  "description": [
+      "Simple Placeholder"
+  ],
+  "category": "Gameplay",
+  "gameVersion": "1.3.0p1",
+  "version": "1.0.0",
+  "config": {},
+  "links": {
+    "project-home": "https://github.com/sc2ad/QuestHitScoreVisualizer"
+  },
+  "platform": "Quest",
+  "components": [
+    {
+      "Type": "HookMod",
+      "InstallAction": {
+        "InstallLibraryFile": "libsimple.so"
+      },
+      "UninstallAction": {
+        "RemoveLibraryFile": "libsimple.so"
+      }
+    }
+  ]
+}
