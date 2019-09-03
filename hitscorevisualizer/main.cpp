@@ -548,7 +548,7 @@ static Il2CppString* replaceBuffer(Il2CppString* q, std::string_view left, std::
 static Il2CppString* concatBuffer(Il2CppString* left, std::string_view right) {
     void* args[] = {reinterpret_cast<void*>(left), reinterpret_cast<void*>(il2cpp_utils::createcsstr(right))};
     Il2CppException* exp;
-    Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(replace, nullptr, args, &exp);
+    Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(concat, nullptr, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
         log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
@@ -561,12 +561,13 @@ static Il2CppString* concatBuffer(Il2CppString* left, std::string_view right) {
 static Il2CppString* concatBuffer(Il2CppString* left, Il2CppString* right) {
     void* args[] = {reinterpret_cast<void*>(left), reinterpret_cast<void*>(right)};
     Il2CppException* exp;
-    Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(replace, nullptr, args, &exp);
+    Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(concat, nullptr, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
         log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
+    log(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), to_utf8(csstrtostr(right)).c_str(), to_utf8(csstrtostr(concatted)).c_str());
     return concatted;
 }
 
