@@ -28,28 +28,30 @@
 #define GetBeatmapDataFromBeatmapSaveData_offset 0x9A1D0C
 #define RawScoreWithoutMultiplier_offset 0xA0DA14
 
+static auto& config_doc = Configuration::config;
 static struct Config config;
 static bool loadedConfig = false;
 
-static void addJudgement(rapidjson::MemoryPoolAllocator<> &alloc, rapidjson::GenericArray<false, rapidjson::Value> arr, int thresh, std::string_view text, std::vector<float> colors, bool fade = false) {
-    auto v = rapidjson::Value(rapidjson::kObjectType);
-    v.AddMember("threshold", rapidjson::Value(thresh), alloc);
-    v.AddMember("text", rapidjson::Value(text.data(), text.length()), alloc);
-    auto color = rapidjson::Value(rapidjson::kArrayType);
-    for (int i = 0; i < 4; i++) {
-        color.PushBack(colors[i], alloc);
-    }
-    v.AddMember("color", color, alloc);
-    v.AddMember("fade", rapidjson::Value(fade), alloc);
-    arr.PushBack(v, alloc);
-}
+// static void addJudgement(rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> &alloc, rapidjson::GenericArray<false, ConfigValue> arr, int thresh, std::string_view text, std::vector<float> colors, bool fade = false) {
+//     auto v = ConfigValue(rapidjson::kObjectType).GetObject();
+//     v.AddMember(ConfigValue("threshold"), ConfigValue(thresh), alloc);
+//     v.AddMember("threshold", ConfigValue(thresh), alloc);
+//     v.AddMember("text", ConfigValue(text.data(), text.length()), alloc);
+//     auto color = ConfigValue(rapidjson::kArrayType).GetArray();
+//     for (int i = 0; i < 4; i++) {
+//         color.PushBack(ConfigValue(colors[i]), alloc);
+//     }
+//     v.AddMember("color", color, alloc);
+//     v.AddMember("fade", rapidjson::Value(fade), alloc);
+//     arr.PushBack(v, alloc);
+// }
 
-static void addSegment(rapidjson::MemoryPoolAllocator<> &alloc, rapidjson::GenericArray<false, rapidjson::Value> arr, int thresh, std::string_view text) {
-    auto v = rapidjson::Value(rapidjson::kObjectType);
-    v.AddMember("threshold", rapidjson::Value(thresh), alloc);
-    v.AddMember("text", rapidjson::Value(text.data(), text.length()), alloc);
-    arr.PushBack(v, alloc);
-}
+// static void addSegment(rapidjson::MemoryPoolAllocator<> &alloc, rapidjson::GenericArray<false, rapidjson::Value> arr, int thresh, std::string_view text) {
+//     auto v = rapidjson::Value(rapidjson::kObjectType);
+//     v.AddMember("threshold", rapidjson::Value(thresh), alloc);
+//     v.AddMember("text", rapidjson::Value(text.data(), text.length()), alloc);
+//     arr.PushBack(v, alloc);
+// }
 
 static void createdefaultjson() {
     // log(DEBUG, "Attempting to create default config");
@@ -230,7 +232,7 @@ static void createdefault() {
     log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
 }
 
-static bool createjudgements(rapidjson::GenericArray<false, rapidjson::Value> arr) {
+static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
     int index = 0;
     // config.judgements.clear();
     config.judgements.reserve(arr.Size());
@@ -303,9 +305,9 @@ static bool createjudgements(rapidjson::GenericArray<false, rapidjson::Value> ar
     return true;
 }
 
-static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjson::GenericArray<false, rapidjson::Value> arr) {
+static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjson::GenericArray<false, ConfigValue> arr) {
     int index = 0;
-    log(DEBUG, "Segments array has size: %lu", arr.Size());
+    log(DEBUG, "Segments array has size: %d", arr.Size());
     for (auto& v : arr) {
         if (!v.IsObject()) {
             // ERROR
@@ -340,26 +342,24 @@ static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjs
 // Returns 0 on success, -1 on failure, but don't create default JSON, -2 on failure and do create JSON
 static int loadjudgements() {
     log(DEBUG, "Loading judgements...");
-    rapidjson::Document json_doc;
-    parsejsonfile(json_doc, getconfigpath());
-    // rapidjson::Document& json_doc = Configuration::Load();
+    // rapidjson::Document& config_doc = Configuration::Load();
 
     // Two approach ideas:
     // 1. Iterate over all members
     // 2. Call FindMember a bunch of times
     // 1:
-    if (json_doc.HasMember("useJson")) {
-        if (!json_doc["useJson"].IsBool()) {
-            json_doc["useJson"].SetBool(true);
+    if (config_doc.HasMember("useJson")) {
+        if (!config_doc["useJson"].IsBool()) {
+            config_doc["useJson"].SetBool(true);
             Configuration::Write();
         }
-        if (!json_doc["useJson"].GetBool()) {
+        if (!config_doc["useJson"].GetBool()) {
             // Exit without parsing the JSON
             log(INFO, "useJson is false, loading candy crush config!");
             return -1;
         }
     }
-    for (auto itr = json_doc.MemberBegin(); itr != json_doc.MemberEnd(); itr++) {
+    for (auto itr = config_doc.MemberBegin(); itr != config_doc.MemberEnd(); itr++) {
         if (strcmp(itr->name.GetString(), "majorVersion") == 0) {
             if (!itr->value.IsInt()) {
                 // ERROR
@@ -480,13 +480,16 @@ static int loadjudgements() {
     }
     if (config.majorVersion < 2 || (config.majorVersion == 2 && config.minorVersion < 2) || (config.majorVersion == 2 && config.minorVersion == 2 && config.patchVersion < 0)) {
         // VERSION ERROR
-        log(INFO, "Version mismatch! Version is: %lu.%lu.%lu but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
+        log(INFO, "Version mismatch! Version is: %d.%d.%d but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
         return -1;
     }
     return 0;
 }
 
 static void loadall() {
+    log(INFO, "Loading Configuration...");
+    Configuration::Load();
+    log(INFO, "Loaded Configuration!");
     log(DEBUG, "Created Initial Config Object, should no longer be null!");
     int r = loadjudgements();
     if (r == -2) {
@@ -503,6 +506,7 @@ static void loadall() {
     if (r == 0) {
         log(INFO, "Successfully loaded judgements from JSON!");
     }
+    log(DEBUG, "Sizes: %lu, %lu, %lu, %lu", config.judgements.size(), config.beforeCutAngleJudgements.size(), config.accuracyJudgements.size(), config.afterCutAngleJudgements.size());
     loadedConfig = true;
 }
 
@@ -528,15 +532,16 @@ static Il2CppClass* str_class;
 static const MethodInfo* concat;
 static const MethodInfo* replace;
 
-static Il2CppString* replaceBuffer(Il2CppString* judgement_cs, std::string_view left, std::string_view right) {
+static Il2CppString* replaceBuffer(Il2CppString* q, std::string_view left, std::string_view right) {
     void* args[] = {reinterpret_cast<void*>(il2cpp_utils::createcsstr(left)), reinterpret_cast<void*>(il2cpp_utils::createcsstr(right))};
     Il2CppException* exp;
-    judgement_cs = (Il2CppString*)il2cpp_functions::runtime_invoke(replace, judgement_cs, args, &exp);
+    Il2CppString* judgement_cs = (Il2CppString*)il2cpp_functions::runtime_invoke(replace, q, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
         log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
+    log(DEBUG, "String replacement with orig: %s old: %s new: %s final: %s", to_utf8(csstrtostr(q)).c_str(), left.data(), right.data(), to_utf8(csstrtostr(judgement_cs)).c_str());
     return judgement_cs;
 }
 
@@ -549,6 +554,7 @@ static Il2CppString* concatBuffer(Il2CppString* left, std::string_view right) {
         log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
+    log(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), right.data(), to_utf8(csstrtostr(concatted)).c_str());
     return concatted;
 }
 
@@ -568,6 +574,9 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     if (!__cached) {
         log(DEBUG, "Getting required il2cpp classes/method infos...");
         tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
+        log(DEBUG, "Initializing il2cpp_functions...");
+        il2cpp_functions::Init();
+        log(DEBUG, "Using il2cpp_functions...");
         set_richText = il2cpp_functions::class_get_method_from_name(tmp_class, "set_richText", 1);
         set_enableWordWrapping = il2cpp_functions::class_get_method_from_name(tmp_class, "set_enableWordWrapping", 1);
         set_overflowMode = il2cpp_functions::class_get_method_from_name(tmp_class, "set_overflowMode", 1);
@@ -578,10 +587,10 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         log(DEBUG, "Getting important string methods...");
         log(DEBUG, "String Class Name: %s", il2cpp_functions::class_get_name(str_class));
         // TODO FIX YUCKY HACK
-        log(DEBUG, "Getting Method 96 for String.Replace");
-        replace = str_class->methods[96];
-        log(DEBUG, "Getting Method 112 for String.Concat");
-        concat = str_class->methods[112];
+        log(DEBUG, "Getting Method 98 for String.Replace");
+        replace = str_class->methods[97];
+        log(DEBUG, "Getting Method 114 for String.Concat");
+        concat = str_class->methods[113];
         // il2cpp_utils::LogClass(str_class, false);
         // const MethodInfo* current;
         // void* myIter;
@@ -612,7 +621,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     if (loadedConfig) {
         log(DEBUG, "Loaded Config!");
     }
-    else if (!loadedConfig || config.judgements.size() == 0) {
+    if (!loadedConfig || config.judgements.size() == 0) {
         log(DEBUG, "Config not yet loaded! Loading now...");
         log(DEBUG, "Judgements Size: %lu", config.judgements.size());
         log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
@@ -623,7 +632,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
             log(DEBUG, "Loaded Config!");
         }
     }
-    log(DEBUG, "Checking judgements for score: %lu", score);
+    log(DEBUG, "Checking judgements for score: %d", score);
     log(DEBUG, "Config Judgements Size: %lu", config.judgements.size());
     log(DEBUG, "0th Item Text: %s", config.judgements[0].text);
     judgement best = config.judgements[config.judgements.size() - 1];
@@ -633,37 +642,37 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         best = config.judgements[i];
     }
-    log(DEBUG, "Setting score effect's color to best color with threshold: %lu for score: %lu", best.threshold, score);
+    log(DEBUG, "Setting score effect's color to best color with threshold: %d for score: %d", best.threshold, score);
     // TODO Add fading
-    scorePointer->color.r = best.r;
-    scorePointer->color.g = best.g;
-    scorePointer->color.b = best.b;
-    scorePointer->color.a = best.a;
+    scorePointer->_color.r = best.r;
+    scorePointer->_color.g = best.g;
+    scorePointer->_color.b = best.b;
+    scorePointer->_color.a = best.a;
     log(DEBUG, "Modified color!");
 
     // Runtime invoke set_richText to true
     bool set_to = true;
-    if (!il2cpp_utils::RunMethod(scorePointer->text, set_richText, &set_to)) {
+    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_richText, &set_to)) {
         // ERROR VIA EXCEPTION
         return;
     }
 
     // Runtime invoke set_enableWordWrapping false
     set_to = false;
-    if (!il2cpp_utils::RunMethod(scorePointer->text, set_enableWordWrapping, &set_to)) {
+    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_enableWordWrapping, &set_to)) {
         // ERROR VIA EXCEPTION
         return;
     }
 
     // Runtime invoke set_overflowMode false
-    if (!il2cpp_utils::RunMethod(scorePointer->text, set_overflowMode, &set_to)) {
+    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_overflowMode, &set_to)) {
         // ERROR VIA EXCEPTION
         return;
     }
 
     // Get Text
     Il2CppException* exp;
-    Il2CppString* old_text = (Il2CppString*)il2cpp_functions::runtime_invoke(get_text, scorePointer->text, nullptr, &exp);
+    Il2CppString* old_text = (Il2CppString*)il2cpp_functions::runtime_invoke(get_text, scorePointer->_text, nullptr, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
         log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
@@ -677,7 +686,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         log(DEBUG, "Displaying formated text!");
         char buffer[4]; // Max length for score buffers is 3
         // %b
-        sprintf(buffer, "%lu", beforeCut);
+        sprintf(buffer, "%d", beforeCut);
         judgement_cs = replaceBuffer(judgement_cs, "%b", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -685,7 +694,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %c
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%lu", cutDistance);
+        sprintf(buffer, "%d", cutDistance);
         judgement_cs = replaceBuffer(judgement_cs, "%c", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -693,7 +702,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %a
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%lu", afterCut);
+        sprintf(buffer, "%d", afterCut);
         judgement_cs = replaceBuffer(judgement_cs, "%a", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -722,7 +731,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         // %s
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%lu", score);
+        sprintf(buffer, "%d", score);
         judgement_cs = replaceBuffer(judgement_cs, "%s", buffer);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
@@ -737,13 +746,13 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
             return;
         }
         // %%
-        judgement_cs = replaceBuffer(judgement_cs, "%b", "%");
+        judgement_cs = replaceBuffer(judgement_cs, "%%", "%");
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
             return;
         }
         // %n
-        judgement_cs = replaceBuffer(judgement_cs, "%b", "\n");
+        judgement_cs = replaceBuffer(judgement_cs, "%n", "\n");
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
             return;
@@ -767,54 +776,50 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     else {
         // Text on top
         log(DEBUG, "Displaying judgement text on top!");
+        log(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
+        auto temp = concatBuffer(judgement_cs, "\n");
+        log(DEBUG, "New temp text: %s", to_utf8(csstrtostr(temp)).c_str());
         // Add newline
-        judgement_cs = concatBuffer(concatBuffer(judgement_cs, "\n"), old_text);
+        judgement_cs = concatBuffer(temp, old_text);
         if (!judgement_cs) {
             // ERROR VIA EXCEPTION
             return;
         }
     }
 
-    if (!il2cpp_utils::RunMethod(scorePointer->text, set_text, judgement_cs)) {
+    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_text, judgement_cs)) {
         // ERROR VIA EXCEPTION
         return;
     }
 }
 
-    MAKE_HOOK(rawScoreWithoutMultiplier, RawScoreWithoutMultiplier_offset, void, void* noteCutInfo, void* saberAfterCutSwingRatingCounter, int* beforeCut, int* afterCut, int* cutDistance) {
+MAKE_HOOK(rawScoreWithoutMultiplier, RawScoreWithoutMultiplier_offset, void, void* noteCutInfo, int* beforeCut, int* afterCut, int* cutDistance) {
     log(DEBUG, "Called RawScoreWithoutMultiplier!");
     log(DEBUG, "Calling orig...");
     log(DEBUG, "Judgements Size: %lu", config.judgements.size());
-    rawScoreWithoutMultiplier(noteCutInfo, saberAfterCutSwingRatingCounter, beforeCut, afterCut, cutDistance);
+    rawScoreWithoutMultiplier(noteCutInfo, beforeCut, afterCut, cutDistance);
     log(DEBUG, "SUCCESS!");
 }
 
 static void dump_real(int before, int after, void* ptr) {
-    log(DEBUG, "Dumping Immediate Pointer: %p: %08x", ptr, *reinterpret_cast<int*>(ptr));
-    auto begin = static_cast<int*>(ptr) - before;
-    auto end = static_cast<int*>(ptr) + after;
+    log(DEBUG, "Dumping Immediate Pointer: %p: %lx", ptr, *reinterpret_cast<long*>(ptr));
+    auto begin = static_cast<long*>(ptr) - before;
+    auto end = static_cast<long*>(ptr) + after;
     for (auto cur = begin; cur != end; ++cur) {
-        log(DEBUG, "%p: %08x", cur, *cur);
+        log(DEBUG, "0x%lx: %lx", (long)cur - (long)ptr, *cur);
     }
 }
 
-MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset, void, FlyingScoreEffect* self, void* saberAfterCutSwingRatingCounter, float rating) {
+MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterCutSwingRatingCounterDidChangeEvent_offset, void, FlyingScoreEffect* self, void* saberSwingRatingCounter, float rating) {
     log(DEBUG, "Called HandleSaberAfterCutSwingRatingCounterDidChangeEvent Hook!");
     if (!il2cpp_functions::initialized) {
         il2cpp_functions::Init();
     }
     log(DEBUG, "Judgements.Size: %lu", config.judgements.size());
     log(DEBUG, "Attempting to call standard HandleSaberAfterCutSwingRatingCounterDidChangeEvent...");
-    HandleSaberAfterCutSwingRatingCounterDidChangeEvent(self, saberAfterCutSwingRatingCounter, rating);
+    HandleSaberAfterCutSwingRatingCounterDidChangeEvent(self, saberSwingRatingCounter, rating);
     log(DEBUG, "Called orig!");
     if (loadedConfig) log(DEBUG, "Loaded Config!");
-    
-    // auto k = il2cpp_utils::GetClassFromName("", "FlyingScoreEffect");
-    // if (!k) {
-    //     log(CRITICAL, "Could not find FlyingScoreEffect class!");
-    // }
-    // il2cpp_utils::LogClass(k, false);
-    // log(DEBUG, "About to get ScoreController Class!");
     
     int beforeCut = 0;
     int afterCut = 0;
@@ -830,12 +835,6 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     // il2cpp_utils::LogMethod(rawScoreWithoutMultiplier);
 
     log(DEBUG, "Attempting to call ScoreController.RawScoreWithoutMultiplier...");
-    // TODO REMOVE THIS HACK
-    // auto func = reinterpret_cast<function_ptr_t<void, void*, void*, int*, int*, int*>>(rawScoreWithoutMultiplier->methodPointer);
-    // dump(0, 8, (void*)(rawScoreWithoutMultiplier->methodPointer));
-    // log(DEBUG, "Attempting to call it, after casting it to that monstrosity...");
-    // func(self->noteCutInfo, self->saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
-
     
     // void* args[] = {self->noteCutInfo, self->saberAfterCutSwingRatingCounter, &beforeCutBox, &afterCutBox, &cutDistanceBox};
     // Il2CppException* exp;
@@ -846,12 +845,18 @@ MAKE_HOOK(HandleSaberAfterCutSwingRatingCounterDidChangeEvent, HandleSaberAfterC
     //     return;
     // }
 
-    dump_real(0, 32, self);
+    // log(DEBUG, "Dumping various info...");
 
-    rawScoreWithoutMultiplier(self->noteCutInfo, self->saberAfterCutSwingRatingCounter, &beforeCut, &afterCut, &cutDistance);
+    // log(DEBUG, "Dumping _moveAnimationCurve loc: %p", self->_moveAnimationCurve);
+    // log(DEBUG, "Dumping _fadeAnimationCurve loc: %p", self->_fadeAnimationCurve);
+    // log(DEBUG, "Dumping _noteCutInfo loc: %p", self->_noteCutInfo);
+
+    // dump_real(0, 32, self);
+
+    rawScoreWithoutMultiplier(self->_noteCutInfo, &beforeCut, &afterCut, &cutDistance);
     
     int score = beforeCut + afterCut;
-    log(DEBUG, "RawScore: %lu", score);
+    log(DEBUG, "RawScore: %d", score);
     log(DEBUG, "Checking judgements...");
     checkJudgements(self, beforeCut, afterCut, cutDistance);
     log(DEBUG, "Completed HandleSaberAfterCutSwingRatingCounterDidChangeEvent!");
@@ -948,6 +953,9 @@ MAKE_HOOK(GetBeatmapDataFromBeatmapSaveData, GetBeatmapDataFromBeatmapSaveData_o
 
 __attribute__((constructor)) void lib_main()
 {
+    #ifdef __aarch64__
+    log(INFO, "Is 64 bit!");
+    #endif
     log(DEBUG, "Installing HitScoreVisualizer...");
     // INSTALL_HOOK(init_and_present);
     // log("Installed InitAndPresent Hook!");

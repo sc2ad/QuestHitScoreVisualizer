@@ -52,29 +52,27 @@ struct Config {
 
 typedef struct FlyingObjectEffect : UnityEngine_Object::Class {
     // Fields
-	void* _moveAnimationCurve; // 0xC
-	float _shakeFrequency; // 0x10
-	float _shakeStrength; // 0x14
-	void* _shakeStrengthAnimationCurve; // 0x18
-	void* didFinishEvent; // 0x1C
-	bool _initialized; // 0x20
-	Quaternion _rotation; // 0x24
-	float _elapsedTime; // 0x34
-	Vector3 _startPos; // 0x38
-	Vector3 _targetPos; // 0x44
-	float _duration; // 0x50
-	uint32_t _shake; // 0x54
+	void* _moveAnimationCurve; // 0x18
+	float _shakeFrequency; // 0x20
+	float _shakeStrength; // 0x24
+	void* _shakeStrengthAnimationCurve; // 0x28
+	void* didFinishEvent; // 0x30
+	uint32_t _initialized; // 0x38
+	Quaternion _rotation; // 0x3C
+	float _elapsedTime; // 0x4C
+	Vector3 _startPos; // 0x50
+	Vector3 _targetPos; // 0x5C
+	float _duration; // 0x68
+	uint32_t _shake; // 0x6C
 } FlyingObjectEffect;
 
 typedef struct FlyingScoreEffect : FlyingObjectEffect {
-    void* fadeAnimationCurve; // 0x58
-    void* maxCutDistanceScoreIndicator; // 0x5C
-    void* text; // TextMeshPro (base class: TMP_Text) // 0x60
-    Color color; // 0x64
-    float colorAMultiplier; // 0x74
-    void* noteCutInfo; // 0x78
-    void* saberAfterCutSwingRatingCounter; // 0x7C
-    
+    void* _fadeAnimationCurve; // 0x70
+	void* _maxCutDistanceScoreIndicator; // 0x78
+	void* _text; // 0x80
+	Color _color; // 0x88
+	float _colorAMultiplier; // 0x98
+	void* _noteCutInfo; // 0xA0
 } FlyingScoreEffect;
 
 #endif /* HITSCOREVISUALIZER_H */
