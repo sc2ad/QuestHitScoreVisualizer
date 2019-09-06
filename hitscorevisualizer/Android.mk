@@ -33,7 +33,7 @@ LOCAL_MODULE := hook
 
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -DMOD_ID='"HitScoreVisualizer"' -DVERSION='"1.9.3"'
+LOCAL_CFLAGS    := -DMOD_ID='"HitScoreVisualizer"' -DVERSION='"2.0.0"'
 LOCAL_MODULE    := hitscorevisualizer
 # LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_CPPFLAGS := -std=c++2a

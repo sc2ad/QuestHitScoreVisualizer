@@ -13,9 +13,6 @@
 
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 
-#define MOD_ID "HitScoreVisualizer"
-#define VERSION "1.9.3"
-
 #define LOG_LEVEL CRITICAL | ERROR | WARNING | INFO | DEBUG
 
 #include "../beatsaber-hook/shared/utils/utils.h"
@@ -618,7 +615,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         // }
     }
 
-    int score = beforeCut + afterCut;
+    int score = beforeCut + afterCut + cutDistance;
     if (loadedConfig) {
         log(DEBUG, "Loaded Config!");
     }
