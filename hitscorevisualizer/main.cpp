@@ -19,11 +19,11 @@
 #include "../beatsaber-hook/shared/utils/customui.h"
 #include "../beatsaber-hook/rapidjson/include/rapidjson/document.h"
 #include "../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
-#include "../beatsaber-hook/shared/utils/config-utils.h"
+#include "../beatsaber-hook/shared/utils/config-utils.hpp"
 #include "main.h"
 
-#define HandleSaberSwingRatingCounterDidChangeEvent_offset 0xA49F7C
-#define RawScoreWithoutMultiplier_offset 0xA0AF4C
+#define HandleSaberSwingRatingCounterDidChangeEvent_offset 0xA4E600
+#define RawScoreWithoutMultiplier_offset 0xA105D0
 
 static auto& config_doc = Configuration::config;
 static struct Config config;
@@ -196,7 +196,7 @@ static void createdefaultjson() {
 static void createdefault() {
     config.judgements.reserve(6);
     // Creating Fantastic judgement
-    config.judgements.assign(6, {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!", false});
+    config.judgements[0] = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!", false};
     // Creating Excellent judgement
     config.judgements[1] = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>", true};
     // Creating Great judgement
@@ -210,15 +210,15 @@ static void createdefault() {
     // Set displaymode
     config.displayMode = DISPLAY_MODE_TEXTONTOP;
     // Set BeforeCutSegments
-    config.beforeCutAngleJudgements.reserve(6);
+    config.beforeCutAngleJudgements.reserve(2);
     config.beforeCutAngleJudgements.assign(2, {70, "+"});
     config.beforeCutAngleJudgements[1] = {0, " "};
     // Set AccuracySegments
-    config.accuracyJudgements.reserve(6);
+    config.accuracyJudgements.reserve(2);
     config.accuracyJudgements.assign(2, {15, "+"});
     config.accuracyJudgements[1] = {0, " "};
     // Set AfterCut
-    config.afterCutAngleJudgements.reserve(6);
+    config.afterCutAngleJudgements.reserve(2);
     config.afterCutAngleJudgements.assign(2, {30, "+"});
     config.afterCutAngleJudgements[1] = {0, " "};
 
@@ -495,10 +495,11 @@ static void loadall() {
         r = loadjudgements();
     } if (r == -1) {
         log(INFO, "Loading candy crush config");
-        createdefault();
+        // createdefault();
+        r = loadjudgements();
     } if (r == -2) {
         log(CRITICAL, "COULD NOT LOAD DEFAULT JSON!");
-        createdefault();
+        // createdefault();
     }
     if (r == 0) {
         log(INFO, "Successfully loaded judgements from JSON!");
@@ -654,80 +655,40 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
 
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         // THIS IS VERY INEFFICIENT AND SLOW BUT SHOULD WORK!
-        log(DEBUG, "Displaying formated text!");
+        // log(DEBUG, "Displaying formated text!");
         char buffer[4]; // Max length for score buffers is 3
         // %b
         sprintf(buffer, "%d", beforeCut);
         judgement_cs = replaceBuffer(judgement_cs, "%b", buffer);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %c
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
         sprintf(buffer, "%d", cutDistance);
         judgement_cs = replaceBuffer(judgement_cs, "%c", buffer);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %a
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
         sprintf(buffer, "%d", afterCut);
         judgement_cs = replaceBuffer(judgement_cs, "%a", buffer);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %B
         const char* bestBeforeSeg = getBestSegment(config.beforeCutAngleJudgements, beforeCut);
         judgement_cs = replaceBuffer(judgement_cs, "%B", bestBeforeSeg);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %C
         const char* bestCutAcc = getBestSegment(config.accuracyJudgements, cutDistance);
         judgement_cs = replaceBuffer(judgement_cs, "%C", bestCutAcc);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %A
         const char* bestAfterSeg = getBestSegment(config.afterCutAngleJudgements, afterCut);
         judgement_cs = replaceBuffer(judgement_cs, "%A", bestAfterSeg);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %s
         buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
         sprintf(buffer, "%d", score);
         judgement_cs = replaceBuffer(judgement_cs, "%s", buffer);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %p
         char percentBuff[7]; // 6 is upper bound for 100.00 percent
         sprintf(percentBuff, "%.2f", score / 115.0 * 100.0);
         judgement_cs = replaceBuffer(judgement_cs, "%p", percentBuff);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %%
         judgement_cs = replaceBuffer(judgement_cs, "%%", "%");
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
         // %n
         judgement_cs = replaceBuffer(judgement_cs, "%n", "\n");
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
     }
     else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         // Numeric display ONLY
@@ -739,10 +700,6 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         log(DEBUG, "Displaying score on top!");
         // Add newline
         judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
     }
     else {
         // Text on top
@@ -752,10 +709,6 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         log(DEBUG, "New temp text: %s", to_utf8(csstrtostr(temp)).c_str());
         // Add newline
         judgement_cs = concatBuffer(temp, old_text);
-        if (!judgement_cs) {
-            // ERROR VIA EXCEPTION
-            return;
-        }
     }
 
     if (!il2cpp_utils::RunMethod(scorePointer->_text, set_text, judgement_cs)) {
@@ -766,15 +719,6 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
 
 MAKE_HOOK(rawScoreWithoutMultiplier, RawScoreWithoutMultiplier_offset, void, void* noteCutInfo, int* beforeCut, int* afterCut, int* cutDistance) {
     rawScoreWithoutMultiplier(noteCutInfo, beforeCut, afterCut, cutDistance);
-}
-
-static void dump_real(int before, int after, void* ptr) {
-    log(DEBUG, "Dumping Immediate Pointer: %p: %lx", ptr, *reinterpret_cast<long*>(ptr));
-    auto begin = static_cast<long*>(ptr) - before;
-    auto end = static_cast<long*>(ptr) + after;
-    for (auto cur = begin; cur != end; ++cur) {
-        log(DEBUG, "0x%lx: %lx", (long)cur - (long)ptr, *cur);
-    }
 }
 
 MAKE_HOOK(HandleSaberSwingRatingCounterDidChangeEvent, HandleSaberSwingRatingCounterDidChangeEvent_offset, void, FlyingScoreEffect* self, void* saberSwingRatingCounter, float rating) {

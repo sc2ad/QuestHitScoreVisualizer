@@ -8,9 +8,9 @@
 #include <vector>
 #include <unordered_map>
 
-#include "../beatsaber-hook/shared/utils/rapidjson-utils.h"
+#include "../beatsaber-hook/shared/utils/rapidjson-utils.hpp"
 #include "../beatsaber-hook/shared/utils/utils.h"
-#include "../beatsaber-hook/shared/dumps/UnityEngine_Object.h"
+#include "../beatsaber-hook/shared/dumps/UnityEngine_Object.hpp"
 
 #ifndef __cplusplus
 #define bool uint8_t
