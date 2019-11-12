@@ -741,30 +741,44 @@ MAKE_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, void, FlyingSc
     checkJudgements(self, beforeCut, afterCut, cutDistance);
 }
 
-__attribute__((constructor)) void lib_main()
-{
-    #ifdef __aarch64__
-    log_print(INFO, "Is 64 bit!");
-    #endif
-    log_print(DEBUG, "Installing HitScoreVisualizer...");
-    // INSTALL_HOOK(init_and_present);
-    // log_print("Installed InitAndPresent Hook!");
-    // INSTALL_HOOK(GetBeatmapDataFromBeatmapSaveData);
-    // log_print(DEBUG, "Installed BeatmapDataLoader.GetBeatmapDataFromBeatmapSaveData Hook!");
-    // Attempt to add and create judgements
-    // Attempt to find judgements
-    log_print(DEBUG, "Created Config Wrapper!");
-    loadall();
+namespace mod {
+    void lib_main(tag_type)
+    {
+        #ifdef __aarch64__
+        log_print(INFO, "Is 64 bit!");
+        #endif
+        log_print(DEBUG, "Installing HitScoreVisualizer...");
+        // INSTALL_HOOK(init_and_present);
+        // log_print("Installed InitAndPresent Hook!");
+        // INSTALL_HOOK(GetBeatmapDataFromBeatmapSaveData);
+        // log_print(DEBUG, "Installed BeatmapDataLoader.GetBeatmapDataFromBeatmapSaveData Hook!");
+        // Attempt to add and create judgements
+        // Attempt to find judgements
+        log_print(DEBUG, "Created Config Wrapper!");
+        loadall();
+    }
+
+    void load(tag_type) {
+        auto k0 = il2cpp_utils::GetClassFromName("", "FlyingScoreEffect");
+        INSTALL_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_functions::class_get_method_from_name(k0, "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+        log_print(DEBUG, "Installed HandleSaberSwingRatingCounterDidChangeEvent Hook!");
+        auto k1 = il2cpp_utils::GetClassFromName("", "ScoreController");
+        INSTALL_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, il2cpp_functions::class_get_method_from_name(k1, "RawScoreWithoutMultiplier", 4));
+        log_print(DEBUG, "Installed RawScoreWithoutMultiplier Hook!");
+    }
+
+    void preload(tag_type) {
+        // Nothing needed
+    }
+
+    void init(tag_type) {
+        // Nothing needed
+    }
 }
 
-void load() noexcept {
-    auto k0 = il2cpp_utils::GetClassFromName("", "FlyingScoreEffect");
-    INSTALL_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_functions::class_get_method_from_name(k0, "HandleSaberSwingRatingCounterDidChangeEvent", 2));
-    log_print(DEBUG, "Installed HandleSaberSwingRatingCounterDidChangeEvent Hook!");
-    auto k1 = il2cpp_utils::GetClassFromName("", "ScoreController");
-    INSTALL_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, il2cpp_functions::class_get_method_from_name(k1, "RawScoreWithoutMultiplier", 4));
-    log_print(DEBUG, "Installed RawScoreWithoutMultiplier Hook!");
+void __attribute__((constructor)) lib_main() {
+    // Because I'm dumb
+    mod::lib_main({});
 }
 
-CHECK_MOD_CTOR;
-CHECK_MOD_LOAD;
+CHECK_MOD_ANY;
