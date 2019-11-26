@@ -51,7 +51,7 @@ static bool loadedConfig = false;
 // }
 
 static void createdefaultjson() {
-    // log_print(DEBUG, "Attempting to create default config");
+    // log(DEBUG, "Attempting to create default config");
     // rapidjson::Document& doc = Configuration::Load();
     // rapidjson::MemoryPoolAllocator<> &alloc = doc.GetAllocator();
     // doc.RemoveAllMembers();
@@ -79,10 +79,10 @@ static void createdefaultjson() {
     // addSegment(alloc, afterCutAngleJudgements, 0, " ");
     // doc.AddMember("afterCutAngleJudgements", afterCutAngleJudgements, alloc);
     // doc.AddMember("useJson", rapidjson::Value(true), alloc);
-    // log_print(DEBUG, "Attempting to write config");
+    // log(DEBUG, "Attempting to write config");
     // Configuration::Write();
 
-    // log_print(INFO, "Created default JSON config!");
+    // log(INFO, "Created default JSON config!");
 
     const char* js = "\n{\n"
     "\t\"majorVersion\": 2,\n"
@@ -186,10 +186,10 @@ static void createdefaultjson() {
 
     int r = writefile(filename.c_str(), js);
     if (r == 0) {
-        log_print(INFO, "CREATED DEFAULT JSON FILE AT PATH: %s", filename.c_str());
+        log(INFO, "CREATED DEFAULT JSON FILE AT PATH: %s", filename.c_str());
     }
     else if (r == WRITE_ERROR_COULD_NOT_MAKE_FILE) {
-        log_print(INFO, "COULD NOT MAKE DEFAULT JSON FILE AT PATH: %s", filename.c_str());
+        log(INFO, "COULD NOT MAKE DEFAULT JSON FILE AT PATH: %s", filename.c_str());
     }
 }
 
@@ -222,11 +222,11 @@ static void createdefault() {
     config.afterCutAngleJudgements.assign(2, {30, "+"});
     config.afterCutAngleJudgements[1] = {0, " "};
 
-    log_print(DEBUG, "Created default judgements!");
-    log_print(DEBUG, "Judgements Size: %lu", config.judgements.size());
-    log_print(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
-    log_print(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
-    log_print(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
+    log(DEBUG, "Created default judgements!");
+    log(DEBUG, "Judgements Size: %lu", config.judgements.size());
+    log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
+    log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
+    log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
 }
 
 static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
@@ -237,7 +237,7 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
     for (auto& v : arr) {
         if (!v.IsObject()) {
             // ERROR
-            log_print(ERROR, "judgements.item not Object!");
+            log(ERROR, "judgements.item not Object!");
             return false;
         }
         // config.judgements.push_back(judgement());
@@ -245,7 +245,7 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
             if (strcmp(jitr->name.GetString(), "threshold") == 0) {
                 if (!jitr->value.IsInt()) {
                     // ERROR
-                    log_print(ERROR, "judgements.threshold not Int!");
+                    log(ERROR, "judgements.threshold not Int!");
                     return false;
                 }
                 config.judgements[index].threshold = jitr->value.GetInt();
@@ -253,7 +253,7 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
             else if (strcmp(jitr->name.GetString(), "text") == 0) {
                 if (!jitr->value.IsString()) {
                     // ERROR
-                    log_print(ERROR, "judgements.text not String!");
+                    log(ERROR, "judgements.text not String!");
                     return false;
                 }
                 config.judgements[index].text = jitr->value.GetString();
@@ -261,14 +261,14 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
             else if (strcmp(jitr->name.GetString(), "color") == 0) {
                 if (!jitr->value.IsArray()) {
                     // ERROR
-                    log_print(ERROR, "judgements.color not Array!");
+                    log(ERROR, "judgements.color not Array!");
                     return false;
                 }
                 int ci = 0;
                 for (auto& c : jitr->value.GetArray()) {
                     if (!c.IsFloat()) {
                         // ERROR
-                        log_print(ERROR, "judgements.color.item not Float!");
+                        log(ERROR, "judgements.color.item not Float!");
                         return false;
                     }
                     switch (ci) {
@@ -291,7 +291,7 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
             else if (strcmp(jitr->name.GetString(), "fade") == 0) {
                 if (!jitr->value.IsBool()) {
                     // ERROR
-                    log_print(ERROR, "judgements.fade not Bool!");
+                    log(ERROR, "judgements.fade not Bool!");
                     return false;
                 }
                 config.judgements[index].fade = jitr->value.GetBool();
@@ -304,20 +304,20 @@ static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
 
 static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjson::GenericArray<false, ConfigValue> arr) {
     int index = 0;
-    log_print(DEBUG, "Segments array has size: %d", arr.Size());
+    log(DEBUG, "Segments array has size: %d", arr.Size());
     for (auto& v : arr) {
         if (!v.IsObject()) {
             // ERROR
-            log_print(ERROR, "judgementsegments.item not Int!");
+            log(ERROR, "judgementsegments.item not Int!");
             return false;
         }
-        log_print(DEBUG, "Adding segment...");
+        log(DEBUG, "Adding segment...");
         // vec->push_back(judgement_segment());
         for (auto jitr = v.GetObject().MemberBegin(); jitr != v.GetObject().MemberEnd(); jitr++) {
             if (strcmp(jitr->name.GetString(), "threshold") == 0) {
                 if (!jitr->value.IsInt()) {
                     // ERROR
-                    log_print(ERROR, "judgementsegments.threshold not Int!");
+                    log(ERROR, "judgementsegments.threshold not Int!");
                     return false;
                 }
                 vec[index].threshold = jitr->value.GetInt();
@@ -325,7 +325,7 @@ static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjs
             else if (strcmp(jitr->name.GetString(), "text") == 0) {
                 if (!jitr->value.IsString()) {
                     // ERROR
-                    log_print(ERROR, "judgementsegments.text not String!");
+                    log(ERROR, "judgementsegments.text not String!");
                     return false;
                 }
                 vec[index].text = jitr->value.GetString();
@@ -338,7 +338,7 @@ static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjs
 
 // Returns 0 on success, -1 on failure, but don't create default JSON, -2 on failure and do create JSON
 static int loadjudgements() {
-    log_print(DEBUG, "Loading judgements...");
+    log(DEBUG, "Loading judgements...");
     // rapidjson::Document& config_doc = Configuration::Load();
 
     // Two approach ideas:
@@ -352,7 +352,7 @@ static int loadjudgements() {
         }
         if (!config_doc["useJson"].GetBool()) {
             // Exit without parsing the JSON
-            log_print(INFO, "useJson is false, loading candy crush config!");
+            log(INFO, "useJson is false, loading candy crush config!");
             return -1;
         }
     }
@@ -360,7 +360,7 @@ static int loadjudgements() {
         if (strcmp(itr->name.GetString(), "majorVersion") == 0) {
             if (!itr->value.IsInt()) {
                 // ERROR
-                log_print(ERROR, "majorVersion not Int!");
+                log(ERROR, "majorVersion not Int!");
                 return -2;
             }
             config.majorVersion = itr->value.GetInt();
@@ -368,7 +368,7 @@ static int loadjudgements() {
         else if (strcmp(itr->name.GetString(), "minorVersion") == 0) {
             if (!itr->value.IsInt()) {
                 // ERROR
-                log_print(ERROR, "minorVersion not Int!");
+                log(ERROR, "minorVersion not Int!");
                 return -2;
             }
             config.minorVersion = itr->value.GetInt();
@@ -376,7 +376,7 @@ static int loadjudgements() {
         else if (strcmp(itr->name.GetString(), "patchVersion") == 0) {
             if (!itr->value.IsInt()) {
                 // ERROR
-                log_print(ERROR, "patchVersion not Int!");
+                log(ERROR, "patchVersion not Int!");
                 return -2;
             }
             config.patchVersion = itr->value.GetInt();
@@ -384,10 +384,10 @@ static int loadjudgements() {
         else if (strcmp(itr->name.GetString(), "displayMode") == 0) {
             if (!itr->value.IsString()) {
                 // ERROR
-                log_print(ERROR, "displayMode not String!");
+                log(ERROR, "displayMode not String!");
                 return -2;
             }
-            log_print(DEBUG, "DisplayMode: %s", itr->value.GetString());
+            log(DEBUG, "DisplayMode: %s", itr->value.GetString());
             if (strcmp(itr->value.GetString(), "format") == 0) {
                 config.displayMode = DISPLAY_MODE_FORMAT;
             }
@@ -404,17 +404,17 @@ static int loadjudgements() {
                 config.displayMode = DISPLAY_MODE_TEXTONTOP;
             }
             else {
-                log_print(ERROR, "displayMode unknown: %s", itr->value.GetString());
+                log(ERROR, "displayMode unknown: %s", itr->value.GetString());
                 return -2;
             }
         }
         else if (strcmp(itr->name.GetString(), "judgments") == 0) {
             if (!itr->value.IsArray()) {
                 // ERROR
-                log_print(ERROR, "judgements not Array!");
+                log(ERROR, "judgements not Array!");
                 return -2;
             }
-            log_print(DEBUG, "Creating Judgements!");
+            log(DEBUG, "Creating Judgements!");
             if (!createjudgements(itr->value.GetArray())) {
                 // ERROR
                 return -2;
@@ -423,88 +423,88 @@ static int loadjudgements() {
         else if (strcmp(itr->name.GetString(), "beforeCutAngleJudgments") == 0) {
             if (!itr->value.IsArray()) {
                 // ERROR
-                log_print(ERROR, "beforeCutAngleJudgments not Array!");
+                log(ERROR, "beforeCutAngleJudgments not Array!");
                 return -2;
             }
-            log_print(DEBUG, "Creating beforeCutAngleJudgments!");
+            log(DEBUG, "Creating beforeCutAngleJudgments!");
             config.beforeCutAngleJudgements.reserve(itr->value.GetArray().Size());
             config.beforeCutAngleJudgements.assign(itr->value.GetArray().Size(), judgement_segment());
             if (!createjudgementsegments(config.beforeCutAngleJudgements, itr->value.GetArray())) {
                 // ERROR
-                log_print(ERROR, "beforeCutAngleJudgments ERROR!");
+                log(ERROR, "beforeCutAngleJudgments ERROR!");
                 return -2;
             }
         }
         else if (strcmp(itr->name.GetString(), "accuracyJudgments") == 0) {
             if (!itr->value.IsArray()) {
                 // ERROR
-                log_print(ERROR, "accuracyJudgments not Array!");
+                log(ERROR, "accuracyJudgments not Array!");
                 return -2;
             }
-            log_print(DEBUG, "Creating accuracyJudgments!");
+            log(DEBUG, "Creating accuracyJudgments!");
             config.accuracyJudgements.reserve(itr->value.GetArray().Size());
             config.accuracyJudgements.assign(itr->value.GetArray().Size(), judgement_segment());
             if (!createjudgementsegments(config.accuracyJudgements, itr->value.GetArray())) {
                 // ERROR
-                log_print(ERROR, "accuracyJudgments ERROR!");
+                log(ERROR, "accuracyJudgments ERROR!");
                 return -2;
             }
         }
         else if (strcmp(itr->name.GetString(), "afterCutAngleJudgments") == 0) {
             if (!itr->value.IsArray()) {
                 // ERROR
-                log_print(ERROR, "afterCutAngleJudgments not Array!");
+                log(ERROR, "afterCutAngleJudgments not Array!");
                 return -2;
             }
-            log_print(DEBUG, "Creating afterCutAngleJudgments!");
+            log(DEBUG, "Creating afterCutAngleJudgments!");
             config.afterCutAngleJudgements.reserve(itr->value.GetArray().Size());
             config.afterCutAngleJudgements.assign(itr->value.GetArray().Size(), judgement_segment());
             if (!createjudgementsegments(config.afterCutAngleJudgements, itr->value.GetArray())) {
                 // ERROR
-                log_print(ERROR, "afterCutAngleJudgments ERROR!");
+                log(ERROR, "afterCutAngleJudgments ERROR!");
                 return -2;
             }
         }
     }
     if (config.judgements.size() < 1 || config.accuracyJudgements.size() < 1 || config.beforeCutAngleJudgements.size() < 1 || config.afterCutAngleJudgements.size() < 1) {
         // DID NOT LOAD JUDGEMENTS
-        log_print(INFO, "Config Judgements Size: %lu", config.judgements.size());
-        log_print(INFO, "Config accuracyJudgements Size: %lu", config.accuracyJudgements.size());
-        log_print(INFO, "Config beforeCutAngleJudgements Size: %lu", config.beforeCutAngleJudgements.size());
-        log_print(INFO, "Config afterCutAngleJudgements: %lu", config.afterCutAngleJudgements.size());
-        log_print(INFO, "Did not load all required information from JSON. Empty config file?");
+        log(INFO, "Config Judgements Size: %lu", config.judgements.size());
+        log(INFO, "Config accuracyJudgements Size: %lu", config.accuracyJudgements.size());
+        log(INFO, "Config beforeCutAngleJudgements Size: %lu", config.beforeCutAngleJudgements.size());
+        log(INFO, "Config afterCutAngleJudgements: %lu", config.afterCutAngleJudgements.size());
+        log(INFO, "Did not load all required information from JSON. Empty config file?");
         return -2;
     }
     if (config.majorVersion < 2 || (config.majorVersion == 2 && config.minorVersion < 2) || (config.majorVersion == 2 && config.minorVersion == 2 && config.patchVersion < 0)) {
         // VERSION ERROR
-        log_print(INFO, "Version mismatch! Version is: %d.%d.%d but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
+        log(INFO, "Version mismatch! Version is: %d.%d.%d but should be >= 2.2.0!", config.majorVersion, config.minorVersion, config.patchVersion);
         return -1;
     }
     return 0;
 }
 
 static void loadall() {
-    log_print(INFO, "Loading Configuration...");
+    log(INFO, "Loading Configuration...");
     Configuration::Load();
-    log_print(INFO, "Loaded Configuration!");
-    log_print(DEBUG, "Created Initial Config Object, should no longer be null!");
+    log(INFO, "Loaded Configuration!");
+    log(DEBUG, "Created Initial Config Object, should no longer be null!");
     int r = loadjudgements();
     if (r == -2) {
         createdefaultjson();
-        log_print(INFO, "Loading default JSON...");
+        log(INFO, "Loading default JSON...");
         r = loadjudgements();
     } if (r == -1) {
-        log_print(INFO, "Loading candy crush config");
+        log(INFO, "Loading candy crush config");
         // createdefault();
         r = loadjudgements();
     } if (r == -2) {
-        log_print(CRITICAL, "COULD NOT LOAD DEFAULT JSON!");
+        log(CRITICAL, "COULD NOT LOAD DEFAULT JSON!");
         // createdefault();
     }
     if (r == 0) {
-        log_print(INFO, "Successfully loaded judgements from JSON!");
+        log(INFO, "Successfully loaded judgements from JSON!");
     }
-    log_print(DEBUG, "Sizes: %lu, %lu, %lu, %lu", config.judgements.size(), config.beforeCutAngleJudgements.size(), config.accuracyJudgements.size(), config.afterCutAngleJudgements.size());
+    log(DEBUG, "Sizes: %lu, %lu, %lu, %lu", config.judgements.size(), config.beforeCutAngleJudgements.size(), config.accuracyJudgements.size(), config.afterCutAngleJudgements.size());
     loadedConfig = true;
 }
 
@@ -536,10 +536,10 @@ static Il2CppString* replaceBuffer(Il2CppString* q, std::string_view left, std::
     Il2CppString* judgement_cs = (Il2CppString*)il2cpp_functions::runtime_invoke(replace, q, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
-        log_print(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
+        log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
-    log_print(DEBUG, "String replacement with orig: %s old: %s new: %s final: %s", to_utf8(csstrtostr(q)).c_str(), left.data(), right.data(), to_utf8(csstrtostr(judgement_cs)).c_str());
+    log(DEBUG, "String replacement with orig: %s old: %s new: %s final: %s", to_utf8(csstrtostr(q)).c_str(), left.data(), right.data(), to_utf8(csstrtostr(judgement_cs)).c_str());
     return judgement_cs;
 }
 
@@ -549,10 +549,10 @@ static Il2CppString* concatBuffer(Il2CppString* left, std::string_view right) {
     Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(concat, nullptr, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
-        log_print(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
+        log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
-    log_print(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), right.data(), to_utf8(csstrtostr(concatted)).c_str());
+    log(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), right.data(), to_utf8(csstrtostr(concatted)).c_str());
     return concatted;
 }
 
@@ -562,20 +562,20 @@ static Il2CppString* concatBuffer(Il2CppString* left, Il2CppString* right) {
     Il2CppString* concatted = (Il2CppString*)il2cpp_functions::runtime_invoke(concat, nullptr, args, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
-        log_print(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
+        log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return nullptr;
     }
-    log_print(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), to_utf8(csstrtostr(right)).c_str(), to_utf8(csstrtostr(concatted)).c_str());
+    log(DEBUG, "String concat with left: %s right: %s final: %s", to_utf8(csstrtostr(left)).c_str(), to_utf8(csstrtostr(right)).c_str(), to_utf8(csstrtostr(concatted)).c_str());
     return concatted;
 }
 
 static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCut, int cutDistance) {
     if (!__cached) {
-        log_print(DEBUG, "Getting required il2cpp classes/method infos...");
+        log(DEBUG, "Getting required il2cpp classes/method infos...");
         tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
-        log_print(DEBUG, "Initializing il2cpp_functions...");
+        log(DEBUG, "Initializing il2cpp_functions...");
         il2cpp_functions::Init();
-        log_print(DEBUG, "Using il2cpp_functions...");
+        log(DEBUG, "Using il2cpp_functions...");
         set_richText = il2cpp_functions::class_get_method_from_name(tmp_class, "set_richText", 1);
         set_enableWordWrapping = il2cpp_functions::class_get_method_from_name(tmp_class, "set_enableWordWrapping", 1);
         set_overflowMode = il2cpp_functions::class_get_method_from_name(tmp_class, "set_overflowMode", 1);
@@ -583,28 +583,28 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         set_text = il2cpp_functions::class_get_method_from_name(tmp_class, "set_text", 1);
         str_class = il2cpp_utils::GetClassFromName("System", "String");
         // TODO MAKE THESE NOT USE PARAM COUNT
-        log_print(DEBUG, "Getting important string methods...");
-        // log_print(DEBUG, "String Class Name: %s", il2cpp_functions::class_get_name(str_class));
+        log(DEBUG, "Getting important string methods...");
+        // log(DEBUG, "String Class Name: %s", il2cpp_functions::class_get_name(str_class));
         // TODO FIX YUCKY HACK
-        log_print(DEBUG, "Getting Method 98 for String.Replace");
+        log(DEBUG, "Getting Method 98 for String.Replace");
         replace = str_class->methods[97];
-        log_print(DEBUG, "Getting Method 114 for String.Concat");
+        log(DEBUG, "Getting Method 114 for String.Concat");
         concat = str_class->methods[113];
     }
 
     int score = beforeCut + afterCut + cutDistance;
     if (loadedConfig) {
-        log_print(DEBUG, "Loaded Config!");
+        log(DEBUG, "Loaded Config!");
     }
     if (!loadedConfig || config.judgements.size() == 0) {
-        log_print(DEBUG, "Config not yet loaded! Loading now...");
-        log_print(DEBUG, "Judgements Size: %lu", config.judgements.size());
-        log_print(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
-        log_print(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
-        log_print(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
+        log(DEBUG, "Config not yet loaded! Loading now...");
+        log(DEBUG, "Judgements Size: %lu", config.judgements.size());
+        log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
+        log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
+        log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
         loadall();
         if (loadedConfig) {
-            log_print(DEBUG, "Loaded Config!");
+            log(DEBUG, "Loaded Config!");
         }
     }
     judgement best = config.judgements[config.judgements.size() - 1];
@@ -614,13 +614,13 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         }
         best = config.judgements[i];
     }
-    // log_print(DEBUG, "Setting score effect's color to best color with threshold: %d for score: %d", best.threshold, score);
+    // log(DEBUG, "Setting score effect's color to best color with threshold: %d for score: %d", best.threshold, score);
     // TODO Add fading
     scorePointer->_color.r = best.r;
     scorePointer->_color.g = best.g;
     scorePointer->_color.b = best.b;
     scorePointer->_color.a = best.a;
-    // log_print(DEBUG, "Modified color!");
+    // log(DEBUG, "Modified color!");
 
     // Runtime invoke set_richText to true
     bool set_to = true;
@@ -647,7 +647,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     Il2CppString* old_text = (Il2CppString*)il2cpp_functions::runtime_invoke(get_text, scorePointer->_text, nullptr, &exp);
     if (exp) {
         // ERROR VIA EXCEPTION
-        log_print(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
+        log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
         return;
     }
 
@@ -655,7 +655,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
 
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         // THIS IS VERY INEFFICIENT AND SLOW BUT SHOULD WORK!
-        // log_print(DEBUG, "Displaying formated text!");
+        // log(DEBUG, "Displaying formated text!");
         char buffer[4]; // Max length for score buffers is 3
         // %b
         sprintf(buffer, "%d", beforeCut);
@@ -692,21 +692,21 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     }
     else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         // Numeric display ONLY
-        log_print(DEBUG, "Displaying numeric text ONLY!");
+        log(DEBUG, "Displaying numeric text ONLY!");
         judgement_cs = old_text;
     }
     else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
         // Score on top
-        log_print(DEBUG, "Displaying score on top!");
+        log(DEBUG, "Displaying score on top!");
         // Add newline
         judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text);
     }
     else {
         // Text on top
-        log_print(DEBUG, "Displaying judgement text on top!");
-        log_print(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
+        log(DEBUG, "Displaying judgement text on top!");
+        log(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
         auto temp = concatBuffer(judgement_cs, "\n");
-        log_print(DEBUG, "New temp text: %s", to_utf8(csstrtostr(temp)).c_str());
+        log(DEBUG, "New temp text: %s", to_utf8(csstrtostr(temp)).c_str());
         // Add newline
         judgement_cs = concatBuffer(temp, old_text);
     }
@@ -722,13 +722,13 @@ MAKE_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, void, void* noteCutInfo, int* be
 }
 
 MAKE_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, void, FlyingScoreEffect* self, void* saberSwingRatingCounter, float rating) {
-    log_print(DEBUG, "Called HandleSaberSwingRatingCounterDidChangeEvent Hook!");
+    log(DEBUG, "Called HandleSaberSwingRatingCounterDidChangeEvent Hook!");
     if (!il2cpp_functions::initialized) {
         il2cpp_functions::Init();
     }
     HandleSaberSwingRatingCounterDidChangeEvent(self, saberSwingRatingCounter, rating);
-    log_print(DEBUG, "Called orig!");
-    if (loadedConfig) log_print(DEBUG, "Loaded Config!");
+    log(DEBUG, "Called orig!");
+    if (loadedConfig) log(DEBUG, "Loaded Config!");
     
     int beforeCut = 0;
     int afterCut = 0;
@@ -744,26 +744,26 @@ MAKE_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, void, FlyingSc
 void __attribute__((constructor)) lib_main()
 {
     #ifdef __aarch64__
-    log_print(INFO, "Is 64 bit!");
+    log(INFO, "Is 64 bit!");
     #endif
-    log_print(DEBUG, "Installing HitScoreVisualizer...");
+    log(DEBUG, "Installing HitScoreVisualizer...");
     // INSTALL_HOOK(init_and_present);
-    // log_print("Installed InitAndPresent Hook!");
+    // log("Installed InitAndPresent Hook!");
     // INSTALL_HOOK(GetBeatmapDataFromBeatmapSaveData);
-    // log_print(DEBUG, "Installed BeatmapDataLoader.GetBeatmapDataFromBeatmapSaveData Hook!");
+    // log(DEBUG, "Installed BeatmapDataLoader.GetBeatmapDataFromBeatmapSaveData Hook!");
     // Attempt to add and create judgements
     // Attempt to find judgements
-    log_print(DEBUG, "Created Config Wrapper!");
+    log(DEBUG, "Created Config Wrapper!");
     loadall();
 }
 
 void load() {
     auto k0 = il2cpp_utils::GetClassFromName("", "FlyingScoreEffect");
     INSTALL_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_functions::class_get_method_from_name(k0, "HandleSaberSwingRatingCounterDidChangeEvent", 2));
-    log_print(DEBUG, "Installed HandleSaberSwingRatingCounterDidChangeEvent Hook!");
+    log(DEBUG, "Installed HandleSaberSwingRatingCounterDidChangeEvent Hook!");
     auto k1 = il2cpp_utils::GetClassFromName("", "ScoreController");
     INSTALL_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, il2cpp_functions::class_get_method_from_name(k1, "RawScoreWithoutMultiplier", 4));
-    log_print(DEBUG, "Installed RawScoreWithoutMultiplier Hook!");
+    log(DEBUG, "Installed RawScoreWithoutMultiplier Hook!");
 }
 
 // CHECK_MOD_ANY;
