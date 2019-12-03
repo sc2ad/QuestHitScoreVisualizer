@@ -39,7 +39,7 @@ typedef enum DisplayMode {
     DISPLAY_MODE_TEXTONTOP = 4
 } DisplayMode;
 
-struct Config {
+typedef struct Config {
     int majorVersion;
     int minorVersion;
     int patchVersion;

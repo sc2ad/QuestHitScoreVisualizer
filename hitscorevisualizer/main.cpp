@@ -15,223 +15,117 @@
 
 #include "../beatsaber-hook/shared/inline-hook/inlineHook.h"
 
-#define LOG_LEVEL CRITICAL | ERROR | WARNING | INFO | DEBUG
-
 #include "../beatsaber-hook/shared/utils/utils.h"
-#include "../beatsaber-hook/shared/utils/customui.hpp"
+
+#define RAPIDJSON_HAS_STDSTRING 1
+
 #include "../beatsaber-hook/rapidjson/include/rapidjson/document.h"
 #include "../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
 #include "../beatsaber-hook/shared/utils/config-utils.hpp"
 #include "../beatsaber-hook/shared/utils/mod-checks.hpp"
 #include "main.h"
 
+static void createdefaultjson(ConfigDocument& config, rapidjson::Document::AllocatorType& allocator);
+
+// TODO: figure out some way for configs to have default values WITHOUT having to write them to the config file
+static void CheckRegenConfig(ConfigDocument& config) {
+    if (!config.HasMember("regenerateConfig") || config["regenerateConfig"].GetBool()) {
+        log(WARNING, "Regenerating config!");
+        config.SetObject();
+        auto& allocator = config.GetAllocator();
+        createdefaultjson(config, allocator);
+        config.AddMember("regenerateConfig", rapidjson::Value(true), allocator);
+        log(DEBUG, "Attempting to write config");
+        Configuration::Write();
+        log(INFO, "Config regeneration complete!");
+    } else {
+        log(INFO, "Not regnerating config.");
+    }
+}
+
 static auto& config_doc = Configuration::config;
-static struct Config config;
-static bool loadedConfig = false;
+static Config config;
 
-// static void addJudgement(rapidjson::MemoryPoolAllocator<rapidjson::CrtAllocator> &alloc, rapidjson::GenericArray<false, ConfigValue> arr, int thresh, std::string_view text, std::vector<float> colors, bool fade = false) {
-//     auto v = ConfigValue(rapidjson::kObjectType).GetObject();
-//     v.AddMember(ConfigValue("threshold"), ConfigValue(thresh), alloc);
-//     v.AddMember("threshold", ConfigValue(thresh), alloc);
-//     v.AddMember("text", ConfigValue(text.data(), text.length()), alloc);
-//     auto color = ConfigValue(rapidjson::kArrayType).GetArray();
-//     for (int i = 0; i < 4; i++) {
-//         color.PushBack(ConfigValue(colors[i]), alloc);
-//     }
-//     v.AddMember("color", color, alloc);
-//     v.AddMember("fade", rapidjson::Value(fade), alloc);
-//     arr.PushBack(v, alloc);
-// }
-
-// static void addSegment(rapidjson::MemoryPoolAllocator<> &alloc, rapidjson::GenericArray<false, rapidjson::Value> arr, int thresh, std::string_view text) {
-//     auto v = rapidjson::Value(rapidjson::kObjectType);
-//     v.AddMember("threshold", rapidjson::Value(thresh), alloc);
-//     v.AddMember("text", rapidjson::Value(text.data(), text.length()), alloc);
-//     arr.PushBack(v, alloc);
-// }
-
-static void createdefaultjson() {
-    // log(DEBUG, "Attempting to create default config");
-    // rapidjson::Document& doc = Configuration::Load();
-    // rapidjson::MemoryPoolAllocator<> &alloc = doc.GetAllocator();
-    // doc.RemoveAllMembers();
-    // doc.AddMember("majorVersion", rapidjson::Value(2), alloc);
-    // doc.AddMember("minorVersion", rapidjson::Value(2), alloc);
-    // doc.AddMember("patchVersion", rapidjson::Value(0), alloc);
-    // auto judgements = rapidjson::Value(rapidjson::kArrayType).GetArray();
-    // addJudgement(alloc, judgements, 115, "%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0});
-    // addJudgement(alloc, judgements, 101, "<size=80%>%BExcellent%A</size>%n%s", {0.0, 1.0, 0.0, 1.0});
-    // addJudgement(alloc, judgements, 90, "<size=80%>%BGreat%A</size>%n%s", {1.0, 0.980392158, 0.0, 1.0});
-    // addJudgement(alloc, judgements, 80, "<size=80%>%BGood%A</size>%n%s", {1.0, 0.6, 0.0, 1.0}, true);
-    // addJudgement(alloc, judgements, 60, "<size=80%>%BDecent%A</size>%n%s", {1.0, 0.0, 0.0, 1.0}, true);
-    // addJudgement(alloc, judgements, 0, "<size=80%>%BWay Off%A</size>%n%s", {0.5, 0.0, 0.0, 1.0}, true);
-    // doc.AddMember("judgements", judgements, alloc);
-    // auto beforeCutAngleJudgements = rapidjson::Value(rapidjson::kArrayType).GetArray();
-    // addSegment(alloc, beforeCutAngleJudgements, 70, "+");
-    // addSegment(alloc, beforeCutAngleJudgements, 0, " ");
-    // doc.AddMember("beforeCutAngleJudgements", beforeCutAngleJudgements, alloc);
-    // auto accuracyJudgements = rapidjson::Value(rapidjson::kArrayType).GetArray();
-    // addSegment(alloc, accuracyJudgements, 15, "+");
-    // addSegment(alloc, accuracyJudgements, 0, " ");
-    // doc.AddMember("accuracyJudgements", accuracyJudgements, alloc);
-    // auto afterCutAngleJudgements = rapidjson::Value(rapidjson::kArrayType).GetArray();
-    // addSegment(alloc, afterCutAngleJudgements, 30, "+");
-    // addSegment(alloc, afterCutAngleJudgements, 0, " ");
-    // doc.AddMember("afterCutAngleJudgements", afterCutAngleJudgements, alloc);
-    // doc.AddMember("useJson", rapidjson::Value(true), alloc);
-    // log(DEBUG, "Attempting to write config");
-    // Configuration::Write();
-
-    // log(INFO, "Created default JSON config!");
-
-    const char* js = "\n{\n"
-    "\t\"majorVersion\": 2,\n"
-    "\t\"minorVersion\": 2,\n"
-    "\t\"displayMode\": \"format\",\n"
-    "\t\"judgments\":[\n"
-    "\t{\n"
-    "\t\t\"threshold\": 115,\n"
-    "\t\t\"text\": \"%BFantastic%A%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t]\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"threshold\": 101,\n"
-    "\t\t\"text\": \"<size=80%>%BExcellent%A</size>%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t]\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"threshold\": 90,\n"
-    "\t\t\"text\": \"<size=80%>%BGreat%A</size>%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t0.980392158,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t]\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"threshold\": 80,\n"
-    "\t\t\"text\": \"<size=80%>%BGood%A</size>%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t0.6,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t],\n"
-    "\t\t\"fade\": true\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"threshold\": 60,\n"
-    "\t\t\"text\": \"<size=80%>%BDecent%A</size>%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t1.0,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t],\n"
-    "\t\t\"fade\": true\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"text\": \"<size=80%>%BWay Off%A</size>%n%s\",\n"
-    "\t\t\"color\": [\n"
-    "\t\t\t0.5,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t0.0,\n"
-    "\t\t\t1.0\n"
-    "\t\t],\n"
-    "\t\t\"fade\": true\n"
-    "\t}\n"
-    "\t],\n"
-    "\t\"beforeCutAngleJudgments\": [\n"
-    "\t{\n"
-    "\t\t\"threshold\": 70,\n"
-    "\t\t\"text\": \"+\"\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"text\": \" \"\n"
-    "\t}\n"
-    "\t],\n"
-    "\t\"accuracyJudgments\": [\n"
-    "\t{\n"
-    "\t\t\"threshold\": 15,\n"
-    "\t\t\"text\": \"+\"\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"text\": \" \"\n"
-    "\t}\n"
-    "\t],\n"
-    "\t\"afterCutAngleJudgments\": [\n"
-    "\t{\n"
-    "\t\t\"threshold\": 30,\n"
-    "\t\t\"text\": \"+\"\n"
-    "\t},\n"
-    "\t{\n"
-    "\t\t\"text\": \" \"\n"
-    "\t}\n"
-    "\t],\n"
-    "\t\"useJson\": true\n"
-    "}";
-
-    std::string filename = getconfigpath();
-
-    int r = writefile(filename.c_str(), js);
-    if (r == 0) {
-        log(INFO, "CREATED DEFAULT JSON FILE AT PATH: %s", filename.c_str());
-    }
-    else if (r == WRITE_ERROR_COULD_NOT_MAKE_FILE) {
-        log(INFO, "COULD NOT MAKE DEFAULT JSON FILE AT PATH: %s", filename.c_str());
-    }
+static void InitConfig() {
+    Configuration::Load();
+    CheckRegenConfig(config_doc);
 }
 
-static void createdefault() {
-    config.judgements.reserve(6);
-    // Creating Fantastic judgement
-    config.judgements[0] = {115, 1.0f, 1.0f, 1.0f, 1.0f, "Moon Struck!", false};
-    // Creating Excellent judgement
-    config.judgements[1] = {101, 0.0f, 1.0f, 0.0f, 1.0f, "<size=80%>Sugar Crush!</size>", true};
-    // Creating Great judgement
-    config.judgements[2] = {90, 1.0f, 0.980392158f, 0.0f, 1.0f, "<size=80%>Divine</size>", true};
-    // Creating Good judgement
-    config.judgements[3] = {80, 1.0f, 0.6f, 0.0f, 1.0f, "<size=80%>Delicious</size>", true};
-    // Creating Decent judgement
-    config.judgements[4] = {60, 1.0f, 0.0f, 0.0f, 1.0f, "<size=80%>Tasty</size>", true};
-    // Creating Way Off judgement
-    config.judgements[5] = {0, 0.5f, 0.0f, 0.0f, 1.0f, "<size=80%>Sweet</size>", true};
-    // Set displaymode
-    config.displayMode = DISPLAY_MODE_TEXTONTOP;
-    // Set BeforeCutSegments
-    config.beforeCutAngleJudgements.reserve(2);
-    config.beforeCutAngleJudgements.assign(2, {70, "+"});
-    config.beforeCutAngleJudgements[1] = {0, " "};
-    // Set AccuracySegments
-    config.accuracyJudgements.reserve(2);
-    config.accuracyJudgements.assign(2, {15, "+"});
-    config.accuracyJudgements[1] = {0, " "};
-    // Set AfterCut
-    config.afterCutAngleJudgements.reserve(2);
-    config.afterCutAngleJudgements.assign(2, {30, "+"});
-    config.afterCutAngleJudgements[1] = {0, " "};
-
-    log(DEBUG, "Created default judgements!");
-    log(DEBUG, "Judgements Size: %lu", config.judgements.size());
-    log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
-    log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
-    log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
+static void ReloadConfig() {
+    Configuration::Reload();
+    CheckRegenConfig(config_doc);
 }
 
-static bool createjudgements(rapidjson::GenericArray<false, ConfigValue> arr) {
+static void addJudgement(rapidjson::Document::AllocatorType& alloc, rapidjson::Document::ValueType& arr, int thresh, std::string_view text, std::vector<float> colors, bool fade = false) {
+    auto v = ConfigValue(rapidjson::kObjectType).GetObject();
+    v.AddMember(ConfigValue("threshold"), ConfigValue(thresh), alloc);
+    v.AddMember("threshold", ConfigValue(thresh), alloc);
+    v.AddMember("text", ConfigValue(text.data(), text.length()), alloc);
+    auto color = ConfigValue(rapidjson::kArrayType).GetArray();
+    for (int i = 0; i < 4; i++) {
+        color.PushBack(ConfigValue(colors[i]), alloc);
+    }
+    v.AddMember("color", color, alloc);
+    v.AddMember("fade", rapidjson::Value(fade), alloc);
+    arr.SetArray();
+    arr.PushBack(v, alloc);
+}
+
+static void addSegment(rapidjson::Document::AllocatorType& alloc, rapidjson::Document::ValueType& arr, int thresh, std::string_view text) {
+    auto v = rapidjson::Value(rapidjson::kObjectType);
+    v.AddMember("threshold", rapidjson::Value(thresh), alloc);
+    v.AddMember("text", rapidjson::Value(text.data(), text.length()), alloc);
+    arr.SetArray();
+    arr.PushBack(v, alloc);
+}
+
+static void createdefaultjson(ConfigDocument& config, rapidjson::Document::AllocatorType& allocator) {
+    log(DEBUG, "Attempting to create default config");
+
+    config.AddMember("majorVersion", rapidjson::Value(2), allocator);
+    config.AddMember("minorVersion", rapidjson::Value(2), allocator);
+    config.AddMember("patchVersion", rapidjson::Value(0), allocator);
+    log(DEBUG, "Added versions!");
+    auto judgements = rapidjson::Value(rapidjson::kArrayType);
+    log(DEBUG, "About to add judgements...");
+    addJudgement(allocator, judgements, 115, "%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0});
+    addJudgement(allocator, judgements, 101, "<size=80%>%BExcellent%A</size>%n%s", {0.0, 1.0, 0.0, 1.0});
+    addJudgement(allocator, judgements, 90, "<size=80%>%BGreat%A</size>%n%s", {1.0, 0.980392158, 0.0, 1.0});
+    addJudgement(allocator, judgements, 80, "<size=80%>%BGood%A</size>%n%s", {1.0, 0.6, 0.0, 1.0}, true);
+    addJudgement(allocator, judgements, 60, "<size=80%>%BDecent%A</size>%n%s", {1.0, 0.0, 0.0, 1.0}, true);
+    addJudgement(allocator, judgements, 0, "<size=80%>%BWay Off%A</size>%n%s", {0.5, 0.0, 0.0, 1.0}, true);
+    config.AddMember("judgements", judgements, allocator);
+    log(DEBUG, "Added judgements!");
+    auto beforeCutAngleJudgements = rapidjson::Value(rapidjson::kArrayType);
+    addSegment(allocator, beforeCutAngleJudgements, 70, "+");
+    addSegment(allocator, beforeCutAngleJudgements, 0, " ");
+    config.AddMember("beforeCutAngleJudgements", beforeCutAngleJudgements, allocator);
+    log(DEBUG, "Added angle judgements!");
+    auto accuracyJudgements = rapidjson::Value(rapidjson::kArrayType);
+    addSegment(allocator, accuracyJudgements, 15, "+");
+    addSegment(allocator, accuracyJudgements, 0, " ");
+    config.AddMember("accuracyJudgements", accuracyJudgements, allocator);
+    log(DEBUG, "Added accuracy judgements!");
+    auto afterCutAngleJudgements = rapidjson::Value(rapidjson::kArrayType);
+    addSegment(allocator, afterCutAngleJudgements, 30, "+");
+    addSegment(allocator, afterCutAngleJudgements, 0, " ");
+    config.AddMember("afterCutAngleJudgements", afterCutAngleJudgements, allocator);
+    log(DEBUG, "Added after angle judgements!");
+    // std::string filename = getconfigpath();
+
+    // int r = writefile(filename.c_str(), js);
+    // if (r == 0) {
+    //     log(INFO, "CREATED DEFAULT JSON FILE AT PATH: %s", filename.c_str());
+    // }
+    // else if (r == WRITE_ERROR_COULD_NOT_MAKE_FILE) {
+    //     log(INFO, "COULD NOT MAKE DEFAULT JSON FILE AT PATH: %s", filename.c_str());
+    // }
+}
+
+static bool createjudgements(rapidjson::Document::ValueType& arrayValue) {
     int index = 0;
     // config.judgements.clear();
+    auto arr = arrayValue.GetArray();
     config.judgements.reserve(arr.Size());
     config.judgements.assign(arr.Size(), judgement());
     for (auto& v : arr) {
@@ -339,7 +233,8 @@ static bool createjudgementsegments(std::vector<judgement_segment> &vec, rapidjs
 // Returns 0 on success, -1 on failure, but don't create default JSON, -2 on failure and do create JSON
 static int loadjudgements() {
     log(DEBUG, "Loading judgements...");
-    // rapidjson::Document& config_doc = Configuration::Load();
+    Configuration::Load();
+    ConfigDocument& config_doc = Configuration::config;
 
     // Two approach ideas:
     // 1. Iterate over all members
@@ -415,7 +310,7 @@ static int loadjudgements() {
                 return -2;
             }
             log(DEBUG, "Creating Judgements!");
-            if (!createjudgements(itr->value.GetArray())) {
+            if (!createjudgements(itr->value)) {
                 // ERROR
                 return -2;
             }
@@ -483,29 +378,31 @@ static int loadjudgements() {
     return 0;
 }
 
-static void loadall() {
+static bool loadall() {
     log(INFO, "Loading Configuration...");
     Configuration::Load();
     log(INFO, "Loaded Configuration!");
     log(DEBUG, "Created Initial Config Object, should no longer be null!");
     int r = loadjudgements();
     if (r == -2) {
-        createdefaultjson();
+        InitConfig();
         log(INFO, "Loading default JSON...");
         r = loadjudgements();
     } if (r == -1) {
+        InitConfig();
         log(INFO, "Loading candy crush config");
         // createdefault();
         r = loadjudgements();
     } if (r == -2) {
         log(CRITICAL, "COULD NOT LOAD DEFAULT JSON!");
         // createdefault();
+        exit(1);
     }
     if (r == 0) {
         log(INFO, "Successfully loaded judgements from JSON!");
     }
     log(DEBUG, "Sizes: %lu, %lu, %lu, %lu", config.judgements.size(), config.beforeCutAngleJudgements.size(), config.accuracyJudgements.size(), config.afterCutAngleJudgements.size());
-    loadedConfig = true;
+    return r == 0;
 }
 
 static const char* getBestSegment(std::vector<judgement_segment> segments, int comparison) {
@@ -519,16 +416,9 @@ static const char* getBestSegment(std::vector<judgement_segment> segments, int c
     return best.text;
 }
 
-static bool __cached = false;
-static Il2CppClass* tmp_class;
-static const MethodInfo* set_richText;
-static const MethodInfo* set_enableWordWrapping;
-static const MethodInfo* set_overflowMode;
-static const MethodInfo* get_text;
-static const MethodInfo* set_text;
-static Il2CppClass* str_class;
-static const MethodInfo* concat;
-static const MethodInfo* replace;
+
+static const MethodInfo* replace = nullptr;
+static const MethodInfo* concat = nullptr;
 
 static Il2CppString* replaceBuffer(Il2CppString* q, std::string_view left, std::string_view right) {
     void* args[] = {reinterpret_cast<void*>(il2cpp_utils::createcsstr(left)), reinterpret_cast<void*>(il2cpp_utils::createcsstr(right))};
@@ -570,41 +460,41 @@ static Il2CppString* concatBuffer(Il2CppString* left, Il2CppString* right) {
 }
 
 static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int afterCut, int cutDistance) {
-    if (!__cached) {
-        log(DEBUG, "Getting required il2cpp classes/method infos...");
-        tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
-        log(DEBUG, "Initializing il2cpp_functions...");
-        il2cpp_functions::Init();
-        log(DEBUG, "Using il2cpp_functions...");
-        set_richText = il2cpp_functions::class_get_method_from_name(tmp_class, "set_richText", 1);
-        set_enableWordWrapping = il2cpp_functions::class_get_method_from_name(tmp_class, "set_enableWordWrapping", 1);
-        set_overflowMode = il2cpp_functions::class_get_method_from_name(tmp_class, "set_overflowMode", 1);
-        get_text = il2cpp_functions::class_get_method_from_name(tmp_class, "get_text", 0);
-        set_text = il2cpp_functions::class_get_method_from_name(tmp_class, "set_text", 1);
-        str_class = il2cpp_utils::GetClassFromName("System", "String");
-        // TODO MAKE THESE NOT USE PARAM COUNT
-        log(DEBUG, "Getting important string methods...");
-        // log(DEBUG, "String Class Name: %s", il2cpp_functions::class_get_name(str_class));
-        // TODO FIX YUCKY HACK
-        log(DEBUG, "Getting Method 98 for String.Replace");
+    // log(DEBUG, "Getting required il2cpp classes/method infos...");
+    static auto tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
+    // log(DEBUG, "Initializing il2cpp_functions...");
+    il2cpp_functions::Init();
+    // log(DEBUG, "Using il2cpp_functions...");
+    static auto set_richText = il2cpp_utils::GetMethod(tmp_class, "set_richText", 1);
+    static auto set_enableWordWrapping = il2cpp_utils::GetMethod(tmp_class, "set_enableWordWrapping", 1);
+    static auto set_overflowMode = il2cpp_utils::GetMethod(tmp_class, "set_overflowMode", 1);
+    static auto get_text = il2cpp_utils::GetMethod(tmp_class, "get_text", 0);
+    static auto set_text = il2cpp_utils::GetMethod(tmp_class, "set_text", 1);
+    static auto str_class = il2cpp_utils::GetClassFromName("System", "String");
+    // TODO MAKE THESE NOT USE PARAM COUNT
+    // log(DEBUG, "Getting important string methods...");
+    // log(DEBUG, "String Class Name: %s", il2cpp_functions::class_get_name(str_class));
+    // TODO FIX YUCKY HACK
+    // log(DEBUG, "Getting Method 98 for String.Replace");
+    if (replace == nullptr) {
+        log(INFO, "Getting string replace and concat methods!");
         replace = str_class->methods[97];
-        log(DEBUG, "Getting Method 114 for String.Concat");
         concat = str_class->methods[113];
+        log(INFO, "Got string methods!");
     }
 
     int score = beforeCut + afterCut + cutDistance;
-    if (loadedConfig) {
-        log(DEBUG, "Loaded Config!");
-    }
-    if (!loadedConfig || config.judgements.size() == 0) {
-        log(DEBUG, "Config not yet loaded! Loading now...");
+    if (config.judgements.size() == 0) {
+        log(WARNING, "Config not yet loaded (although it should be!) Loading now...");
         log(DEBUG, "Judgements Size: %lu", config.judgements.size());
         log(DEBUG, "BeforeCut Size: %lu", config.beforeCutAngleJudgements.size());
         log(DEBUG, "Accuracy Size: %lu", config.accuracyJudgements.size());
         log(DEBUG, "AfterCut Size: %lu", config.afterCutAngleJudgements.size());
-        loadall();
-        if (loadedConfig) {
+        if (loadall()) {
             log(DEBUG, "Loaded Config!");
+        } else {
+            log(CRITICAL, "WILL CRASH, FAILED TO LOAD CONFIG A SECOND TIME!");
+            exit(1);
         }
     }
     judgement best = config.judgements[config.judgements.size() - 1];
@@ -620,36 +510,21 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
     scorePointer->_color.g = best.g;
     scorePointer->_color.b = best.b;
     scorePointer->_color.a = best.a;
-    // log(DEBUG, "Modified color!");
 
     // Runtime invoke set_richText to true
     bool set_to = true;
-    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_richText, &set_to)) {
-        // ERROR VIA EXCEPTION
-        return;
-    }
+    il2cpp_utils::RunMethod(scorePointer->_text, set_richText, &set_to);
 
     // Runtime invoke set_enableWordWrapping false
     set_to = false;
-    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_enableWordWrapping, &set_to)) {
-        // ERROR VIA EXCEPTION
-        return;
-    }
+    il2cpp_utils::RunMethod(scorePointer->_text, set_enableWordWrapping, &set_to);
 
     // Runtime invoke set_overflowMode false
-    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_overflowMode, &set_to)) {
-        // ERROR VIA EXCEPTION
-        return;
-    }
+    il2cpp_utils::RunMethod(scorePointer->_text, set_overflowMode, &set_to);
 
     // Get Text
-    Il2CppException* exp;
-    Il2CppString* old_text = (Il2CppString*)il2cpp_functions::runtime_invoke(get_text, scorePointer->_text, nullptr, &exp);
-    if (exp) {
-        // ERROR VIA EXCEPTION
-        log(ERROR, "%s", il2cpp_utils::ExceptionToString(exp).c_str());
-        return;
-    }
+    Il2CppString* old_text;
+    il2cpp_utils::RunMethod(&old_text, scorePointer->_text, get_text);
 
     Il2CppString* judgement_cs = il2cpp_utils::createcsstr(best.text);
 
@@ -689,19 +564,16 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         judgement_cs = replaceBuffer(judgement_cs, "%%", "%");
         // %n
         judgement_cs = replaceBuffer(judgement_cs, "%n", "\n");
-    }
-    else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
+    } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         // Numeric display ONLY
         log(DEBUG, "Displaying numeric text ONLY!");
         judgement_cs = old_text;
-    }
-    else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
+    } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
         // Score on top
         log(DEBUG, "Displaying score on top!");
         // Add newline
         judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text);
-    }
-    else {
+    } else {
         // Text on top
         log(DEBUG, "Displaying judgement text on top!");
         log(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
@@ -710,11 +582,7 @@ static void checkJudgements(FlyingScoreEffect* scorePointer, int beforeCut, int 
         // Add newline
         judgement_cs = concatBuffer(temp, old_text);
     }
-
-    if (!il2cpp_utils::RunMethod(scorePointer->_text, set_text, judgement_cs)) {
-        // ERROR VIA EXCEPTION
-        return;
-    }
+    il2cpp_utils::RunMethod(scorePointer->_text, set_text, judgement_cs);
 }
 
 MAKE_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, void, void* noteCutInfo, int* beforeCut, int* afterCut, int* cutDistance) {
@@ -722,19 +590,11 @@ MAKE_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, void, void* noteCutInfo, int* be
 }
 
 MAKE_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, void, FlyingScoreEffect* self, void* saberSwingRatingCounter, float rating) {
-    log(DEBUG, "Called HandleSaberSwingRatingCounterDidChangeEvent Hook!");
-    if (!il2cpp_functions::initialized) {
-        il2cpp_functions::Init();
-    }
     HandleSaberSwingRatingCounterDidChangeEvent(self, saberSwingRatingCounter, rating);
-    log(DEBUG, "Called orig!");
-    if (loadedConfig) log(DEBUG, "Loaded Config!");
     
     int beforeCut = 0;
     int afterCut = 0;
     int cutDistance = 0;
-    // int* ptr_beforeCut = &beforeCut;
-
     rawScoreWithoutMultiplier(self->_noteCutInfo, &beforeCut, &afterCut, &cutDistance);
     
     int score = beforeCut + afterCut;
@@ -743,27 +603,16 @@ MAKE_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, void, FlyingSc
 
 void __attribute__((constructor)) lib_main()
 {
-    #ifdef __aarch64__
-    log(INFO, "Is 64 bit!");
-    #endif
-    log(DEBUG, "Installing HitScoreVisualizer...");
-    // INSTALL_HOOK(init_and_present);
-    // log("Installed InitAndPresent Hook!");
-    // INSTALL_HOOK(GetBeatmapDataFromBeatmapSaveData);
-    // log(DEBUG, "Installed BeatmapDataLoader.GetBeatmapDataFromBeatmapSaveData Hook!");
-    // Attempt to add and create judgements
-    // Attempt to find judgements
-    log(DEBUG, "Created Config Wrapper!");
+    // Load config on construction
+    log(INFO, "Loading configuration...");
     loadall();
 }
 
-void load() {
-    auto k0 = il2cpp_utils::GetClassFromName("", "FlyingScoreEffect");
-    INSTALL_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_functions::class_get_method_from_name(k0, "HandleSaberSwingRatingCounterDidChangeEvent", 2));
-    log(DEBUG, "Installed HandleSaberSwingRatingCounterDidChangeEvent Hook!");
-    auto k1 = il2cpp_utils::GetClassFromName("", "ScoreController");
-    INSTALL_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, il2cpp_functions::class_get_method_from_name(k1, "RawScoreWithoutMultiplier", 4));
-    log(DEBUG, "Installed RawScoreWithoutMultiplier Hook!");
+extern "C" void load() {
+    log(INFO, "Installing...");
+    INSTALL_HOOK_OFFSETLESS(HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::GetMethod("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+    INSTALL_HOOK_OFFSETLESS(rawScoreWithoutMultiplier, il2cpp_utils::GetMethod("", "ScoreController", "RawScoreWithoutMultiplier", 4));
+    log(INFO, "Installed!");
 }
 
 // CHECK_MOD_ANY;
