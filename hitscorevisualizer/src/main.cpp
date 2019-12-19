@@ -172,13 +172,13 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
 }
 // Checks season, sets config to correct season
 void setConfigToCurrentSeason() {
-    if (config.useSeasonalThemes && config.type != CONFIG_TYPE_CHRISTMAS) {
-        // If not Christmas
+    if (config.useSeasonalThemes) {
+        // Check season
         time_t now = std::time(nullptr);
         tm* currentTm = std::localtime(&now);
         log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
-        // Christmas is 1 + 11 month, 23 - 25 day
-        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
+        // Christmas is 1 + 11 month, 20 - 25 day
+        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 20 && currentTm->tm_mday <= 25)) {
             if (config.backupBeforeSeason) {
                 log(DEBUG, "Backing up config before seasonal swap...");
                 ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
