@@ -134,7 +134,7 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
                         break;
                     case '%':
                     default:
-                        sprintf(buffer, "%c", current);
+                        sprintf(buffer, "%%%c", current);
                 }
                 if (out) {
                     ststr << out;
