@@ -9,8 +9,8 @@
       "Now should be version agnostic!"
   ],
   "category": "Gameplay",
-  "gameVersion": "1.5.0",
-  "version": "2.4.0",
+  "gameVersion": "1.6.0",
+  "version": "3.0.0",
   "config": {},
   "porter": "Sc2ad",
   "links": {
@@ -19,12 +19,12 @@
   "platform": "Quest",
   "components": [
     {
-      "Type": "HookMod",
-      "InstallAction": {
-        "InstallLibraryFile": "libhitscorevisualizer.so"
+      "type": "HookMod",
+      "installAction": {
+        "installLibraryFile": "libhitscorevisualizer.so"
       },
-      "UninstallAction": {
-        "RemoveLibraryFile": "libhitscorevisualizer.so"
+      "uninstallAction": {
+        "removeLibraryFile": "libhitscorevisualizer.so"
       }
     }
   ]
