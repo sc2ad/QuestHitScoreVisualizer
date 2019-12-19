@@ -3,7 +3,6 @@
   "name": "Hit Score Visualizer",
   "author": "Ratsby",
   "description": [
-      "Based off of ratsby#1888's HitScoreVisualizer for the PC with the following description:",
       "Visualizes the scores of your hits! Overly complex config options! Numbers? All the pros use it, except the ones who don't. (But they should.)",
       "Does NOT support color fading!",
       "Now should be version agnostic!"
