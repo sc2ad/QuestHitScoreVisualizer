@@ -178,6 +178,7 @@ void loadConfig() {
 }
 // Install hooks
 extern "C" void load() {
+    loadConfig();
     log(INFO, "Installing hooks...");
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::GetMethod("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
     log(INFO, "Installed hooks!");

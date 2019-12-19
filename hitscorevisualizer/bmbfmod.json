@@ -19,12 +19,12 @@
   "platform": "Quest",
   "components": [
     {
-      "type": "HookMod",
-      "installAction": {
-        "installLibraryFile": "libhitscorevisualizer.so"
+      "Type": "HookMod",
+      "InstallAction": {
+        "InstallLibraryFile": "libhitscorevisualizer.so"
       },
-      "uninstallAction": {
-        "removeLibraryFile": "libhitscorevisualizer.so"
+      "UninstallAction": {
+        "RemoveLibraryFile": "libhitscorevisualizer.so"
       }
     }
   ]
