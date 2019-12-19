@@ -177,8 +177,8 @@ void setConfigToCurrentSeason() {
         time_t now = std::time(nullptr);
         tm* currentTm = std::localtime(&now);
         log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
-        // Christmas is 1 + 11 month, 20 - 25 day
-        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 20 && currentTm->tm_mday <= 25)) {
+        // Christmas is 1 + 11 month, 23 - 25 day
+        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
             if (config.backupBeforeSeason) {
                 log(DEBUG, "Backing up config before seasonal swap...");
                 ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
@@ -190,6 +190,7 @@ void setConfigToCurrentSeason() {
             if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
                 log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
                 ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
+                config = ConfigHelper::LoadConfig(Configuration::config);
                 // Delete the old path to ensure we don't load from it again
                 deletefile(CONFIG_BACKUP_PATH);
             } else {
