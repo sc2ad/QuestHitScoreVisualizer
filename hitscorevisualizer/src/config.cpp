@@ -232,22 +232,15 @@ void HSVConfig::SetToChristmas() {
     majorVersion = 2;
     minorVersion = 3;
     patchVersion = 0;
-    judgements = std::vector<judgement>(6);
-    ConfigHelper::CreateJudgement(judgements, 0, 115, "%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0});
-    ConfigHelper::CreateJudgement(judgements, 1, 101, "<size=80%>%BExcellent%A</size>%n%s", {0.0, 1.0, 0.0, 1.0});
-    ConfigHelper::CreateJudgement(judgements, 2, 90, "<size=80%>%BGreat%A</size>%n%s", {1.0, 0.980392158, 0.0, 1.0});
-    ConfigHelper::CreateJudgement(judgements, 3, 80, "<size=80%>%BGood%A</size>%n%s", {1.0, 0.6, 0.0, 1.0}, true);
-    ConfigHelper::CreateJudgement(judgements, 4, 60, "<size=80%>%BDecent%A</size>%n%s", {1.0, 0.0, 0.0, 1.0}, true);
-    ConfigHelper::CreateJudgement(judgements, 5, 0, "<size=80%>%BWay Off%A</size>%n%s", {0.5, 0.0, 0.0, 1.0}, true);
-    beforeCutAngleJudgements = std::vector<segment>(2);
-    ConfigHelper::CreateSegment(beforeCutAngleJudgements, 0, 70, "+");
-    ConfigHelper::CreateSegment(beforeCutAngleJudgements, 1, 0, " ");
-    accuracyJudgements = std::vector<segment>(2);
-    ConfigHelper::CreateSegment(accuracyJudgements, 0, 15, "+");
-    ConfigHelper::CreateSegment(accuracyJudgements, 1, 0, " ");
-    afterCutAngleJudgements = std::vector<segment>(2);
-    ConfigHelper::CreateSegment(afterCutAngleJudgements, 0, 30, "+");
-    ConfigHelper::CreateSegment(afterCutAngleJudgements, 1, 0, " ");
+    judgements = std::vector<judgement>(5);
+    ConfigHelper::CreateJudgement(judgements, 0, 115, "MERRY!%n%s", {1.0, 1.0, 1.0, 1.0});
+    ConfigHelper::CreateJudgement(judgements, 1, 101, "<size=80%>Arsenic Sauce</size>%n%s", {0.0, 1.0, 0.0, 1.0});
+    ConfigHelper::CreateJudgement(judgements, 2, 90, "<size=10%>You're a mean one, Mr. Grinch%nYou really are a heel%nYou're as cuddly as a cactus%nYou're as charming as an eel%nMr. Grinch%nYou're a bad banana with a greasy black peel%nYou're a monster, Mr. Grinch%nYour heart's an empty hole%nYour brain is full of spiders%nYou've got garlic in your soul, Mr Grinch%nI wouldn't touch you with a%nThirty-nine and a half foot pole%nYou're a vile one, Mr. Grinch%nYou have termites in your smile%nYou have all the tender sweetness of a seasick crocodile%nMr Grinch%nGiven the choice between the two of you%nI'd take the seasick crocodile%nYou're a foul one, Mr. Grinch%nYou're a nasty wasty skunk%nYour heart is full of unwashed socks%nYour soul is full of gunk%nMr Grinch%nThe three best words that best describe you%nAre as follows, and I quote%nStink%nStank%nStunk%nYou're a rotter Mr Grinch%nYou're the king of sinful sots%nYour heart's a dead tomato splotched with moldy purple spots%nMr Grinch%nYour soul is an appalling dump heap%nOverflowing with the most disgraceful%nAssortment of deplorable rubbish imaginable%nMangled up in tangled up knots%nYou nauseate me, Mr Grinch%nWith a nauseous super nos%nYou're a crooked jerky jockey and%nYou drive a crooked horse%nMr Grinch%nYou're a three-decker sauerkraut%nAnd toadstool sandwich%nWith arsenic sauce</size>%n%s", {1.0, 0.0, 0.0, 1.0});
+    ConfigHelper::CreateJudgement(judgements, 3, 80, "<size=80%>Sot</size>%n%s", {0.7, 0.0, 0.0, 1.0}, true);
+    ConfigHelper::CreateJudgement(judgements, 4, 0, "<size=180%>GREASY!</size>", {0.5, 0.0, 0.0, 1.0}, true);
+    beforeCutAngleJudgements = std::vector<segment>(0);
+    accuracyJudgements = std::vector<segment>(0);
+    afterCutAngleJudgements = std::vector<segment>(0);
     // Add particle effects
     // COMING SOON
     // Add UI effects
