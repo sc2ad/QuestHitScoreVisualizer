@@ -2,6 +2,7 @@
 #include "../../beatsaber-hook/shared/config/rapidjson-utils.hpp"
 #include "../../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
 #include "../../beatsaber-hook/rapidjson/include/rapidjson/document.h"
+#include "../../beatsaber-hook/shared/utils/logging.h"
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -31,6 +32,10 @@ std::vector<judgement> getJudgements(rapidjson::Value& arr) {
         toAdd.threshold = currentValue["threshold"].GetInt();
         toAdd.text = currentValue["text"].GetString();
         toAdd.color = std::vector<float>();
+        if (currentValue["color"].Size() != COLOR_ARRAY_LENGTH) {
+            log(CRITICAL, "Color array is not correct size!");
+            exit(1);
+        }
         for (int j = 0; j < COLOR_ARRAY_LENGTH; j++) {
             toAdd.color.push_back(currentValue["color"][j].GetFloat());
         }
@@ -79,9 +84,17 @@ void ConfigHelper::AddJSONJudgement(rapidjson::MemoryPoolAllocator<>& allocator,
     rapidjson::Value v(rapidjson::kObjectType);
     v.AddMember("threshold", j.threshold, allocator);
     v.AddMember("text", rapidjson::GenericStringRef<char>(j.text), allocator);
-    auto color = rapidjson::Value(rapidjson::kArrayType).GetArray();
+    rapidjson::Document::ValueType color(rapidjson::kArrayType);
+    if (j.color.size() != COLOR_ARRAY_LENGTH) {
+        log(CRITICAL, "Color array is not correct size!");
+        exit(1);
+    }
     for (int i = 0; i < COLOR_ARRAY_LENGTH; i++) {
         color.PushBack(j.color[i], allocator);
+    }
+    if (color.Size() != COLOR_ARRAY_LENGTH) {
+        log(CRITICAL, "Color array is not correct size: %i vs. %i", color.Size(), j.color.size());
+        exit(1);
     }
     v.AddMember("color", color, allocator);
     v.AddMember("fade", j.fade, allocator);
@@ -106,9 +119,7 @@ void ConfigHelper::BackupConfig(ConfigDocument& config, std::string_view newPath
 }
 
 void ConfigHelper::RestoreConfig(std::string_view newPath) {
-    if (fileexists(newPath.data())) {
-        writefile(getconfigpath().data(), readfile(newPath.data()));
-    }
+    writefile(getconfigpath().data(), readfile(newPath.data()));
     Configuration::Reload();
 }
 
@@ -134,6 +145,7 @@ void ConfigHelper::CreateSegment(std::vector<segment>& segments, int index, int 
 
 HSVConfig ConfigHelper::LoadConfig(ConfigDocument& config) {
     HSVConfig con;
+
     if (!config.IsObject() || config.MemberCount() < 11) {
         con.SetToDefault();
         return con;
@@ -154,6 +166,7 @@ HSVConfig ConfigHelper::LoadConfig(ConfigDocument& config) {
 }
 
 void HSVConfig::WriteToConfig(ConfigDocument& config) {
+    log(DEBUG, "Starting to write to config");
     config.SetObject();
     config.RemoveAllMembers();
     rapidjson::MemoryPoolAllocator<>& allocator = config.GetAllocator();
@@ -162,21 +175,27 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     config.AddMember("minorVersion", minorVersion, allocator);
     config.AddMember("patchVersion", patchVersion, allocator);
     auto arr = rapidjson::Value(rapidjson::kArrayType);
+    log(DEBUG, "Starting judgements");
+    log(DEBUG, "judgements length: %i", judgements.size());
     // Add judgements
     for (auto itr = judgements.begin(); itr != judgements.end(); ++itr) {
+        log(DEBUG, "judgement: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text, itr->color[0], itr->color[1], itr->color[2], itr->color[3]);
         ConfigHelper::AddJSONJudgement(allocator, arr, *itr);
     }
+    log(DEBUG, "Starting segments");
     config.AddMember("judgements", arr, allocator);
     // Add segments
     ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgements, "beforeCutAngleJudgements");
     ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgements, "accuracyJudgements");
     ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgements, "afterCutAngleJudgements");
     // Set metadata
+    log(DEBUG, "Starting metadata");
     config.AddMember("type", type, allocator); // Type can be: 0: Standard, 1: Christmas, 2: Easter, etc.
     config.AddMember("useSeasonalThemes", useSeasonalThemes, allocator);
     config.AddMember("backupBeforeSeason", backupBeforeSeason, allocator);
     config.AddMember("restoreAfterSeason", restoreAfterSeason, allocator);
     config.AddMember("displayMode", rapidjson::GenericStringRef<char>(convertDisplayMode(displayMode)), allocator);
+    log(DEBUG, "Complete!");
 }
 
 void HSVConfig::SetToDefault() {

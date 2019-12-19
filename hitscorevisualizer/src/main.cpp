@@ -49,8 +49,8 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     static auto str_class = il2cpp_utils::GetClassFromName("System", "String");
     // TODO FIX YUCKY HACK
     if (replace == nullptr) {
-        replace = str_class->methods[97];
-        concat = str_class->methods[113];
+        replace = str_class->methods[96];
+        concat = str_class->methods[112];
     }
     static auto length = config.judgements.size();
     int score = beforeCut + afterCut + cutDistance;
@@ -149,21 +149,30 @@ void setConfigToCurrentSeason() {
         // If not Christmas
         time_t now = std::time(nullptr);
         tm* currentTm = std::localtime(&now);
-        if (currentTm->tm_mon == 12 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
-            if (config.backupBeforeSeason)
+        log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
+        // Christmas is 1 + 11 month, 23 - 25 day
+        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
+            if (config.backupBeforeSeason) {
+                log(DEBUG, "Backing up config before seasonal swap...");
                 ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
+            }
+            log(DEBUG, "Setting to Christmas config!");
             config.SetToChristmas();
         } else {
             // Otherwise, set to standard
-            if (config.restoreAfterSeason) {
+            if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
+                log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
                 ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
                 // Delete the old path to ensure we don't load from it again
                 deletefile(CONFIG_BACKUP_PATH);
             } else {
+                log(DEBUG, "Setting config to default!");
                 config.SetToDefault();
             }
         }
+        log(DEBUG, "Writing Config to JSON file!");
         config.WriteToConfig(Configuration::config);
+        log(DEBUG, "Writing Config JSON to file!");
         Configuration::Write();
     }
 }
