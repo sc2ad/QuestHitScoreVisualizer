@@ -88,7 +88,7 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     // Get Text
     Il2CppString* old_text;
     il2cpp_utils::RunMethod(&old_text, text, get_text);
-    Il2CppString* judgement_cs = il2cpp_utils::createcsstr(best.text);
+    Il2CppString* judgement_cs = nullptr;
 
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         // THIS IS VERY INEFFICIENT AND SLOW BUT SHOULD WORK!
@@ -131,9 +131,10 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
         // Score on top
         // Add newline
-        judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text);
+        judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text.data());
     } else {
         // Text on top
+        judgement_cs = il2cpp_utils::createcsstr(best.text.data());
         log(DEBUG, "Displaying judgement text on top!");
         log(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
         auto temp = concatBuffer(judgement_cs, "\n");

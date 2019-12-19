@@ -83,7 +83,7 @@ DisplayMode convertDisplayMode(std::string_view displayMode) {
 void ConfigHelper::AddJSONJudgement(rapidjson::MemoryPoolAllocator<>& allocator, rapidjson::Document::ValueType& arr, judgement& j) {
     rapidjson::Value v(rapidjson::kObjectType);
     v.AddMember("threshold", j.threshold, allocator);
-    v.AddMember("text", rapidjson::GenericStringRef<char>(j.text), allocator);
+    v.AddMember("text", rapidjson::GenericStringRef<char>(j.text.data()), allocator);
     rapidjson::Document::ValueType color(rapidjson::kArrayType);
     if (j.color.size() != COLOR_ARRAY_LENGTH) {
         log(CRITICAL, "Color array is not correct size!");
@@ -179,7 +179,7 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     log(DEBUG, "judgements length: %i", judgements.size());
     // Add judgements
     for (auto itr = judgements.begin(); itr != judgements.end(); ++itr) {
-        log(DEBUG, "judgement: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text, itr->color[0], itr->color[1], itr->color[2], itr->color[3]);
+        log(DEBUG, "judgement: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text.data(), itr->color[0], itr->color[1], itr->color[2], itr->color[3]);
         ConfigHelper::AddJSONJudgement(allocator, arr, *itr);
     }
     log(DEBUG, "Starting segments");

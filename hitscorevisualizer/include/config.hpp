@@ -18,7 +18,7 @@ typedef enum ConfigType {
 
 struct judgement {
     int threshold;
-    const char* text;
+    std::string text;
     std::vector<float> color;
     bool fade;
 };
