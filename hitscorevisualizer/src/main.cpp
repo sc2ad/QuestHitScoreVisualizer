@@ -30,6 +30,9 @@ Il2CppString* concatBuffer(Il2CppString* left, Il2CppString* right) {
 }
 const char* getBestSegment(std::vector<segment>& segments, int comparison) {
     auto size = segments.size();
+    if (size == 0) {
+        return "";
+    }
     auto& best = segments[size - 1];
     for (int i = size - 2; i >= 0; i--) {
         if (segments[i].threshold > comparison) {
@@ -91,40 +94,63 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     Il2CppString* judgement_cs = nullptr;
 
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
-        // THIS IS VERY INEFFICIENT AND SLOW BUT SHOULD WORK!
-        char buffer[4]; // Max length for score buffers is 3
-        // %b
-        sprintf(buffer, "%d", beforeCut);
-        judgement_cs = replaceBuffer(judgement_cs, "%b", buffer);
-        // %c
-        buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%d", cutDistance);
-        judgement_cs = replaceBuffer(judgement_cs, "%c", buffer);
-        // %a
-        buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%d", afterCut);
-        judgement_cs = replaceBuffer(judgement_cs, "%a", buffer);
-        // %B
-        const char* bestBeforeSeg = getBestSegment(config.beforeCutAngleJudgements, beforeCut);
-        judgement_cs = replaceBuffer(judgement_cs, "%B", bestBeforeSeg);
-        // %C
-        const char* bestCutAcc = getBestSegment(config.accuracyJudgements, cutDistance);
-        judgement_cs = replaceBuffer(judgement_cs, "%C", bestCutAcc);
-        // %A
-        const char* bestAfterSeg = getBestSegment(config.afterCutAngleJudgements, afterCut);
-        judgement_cs = replaceBuffer(judgement_cs, "%A", bestAfterSeg);
-        // %s
-        buffer[1] = '\0'; buffer[2] = '\0'; // Reset buffer
-        sprintf(buffer, "%d", score);
-        judgement_cs = replaceBuffer(judgement_cs, "%s", buffer);
-        // %p
-        char percentBuff[7]; // 6 is upper bound for 100.00 percent
-        sprintf(percentBuff, "%.2f", score / 115.0 * 100.0);
-        judgement_cs = replaceBuffer(judgement_cs, "%p", percentBuff);
-        // %%
-        judgement_cs = replaceBuffer(judgement_cs, "%%", "%");
-        // %n
-        judgement_cs = replaceBuffer(judgement_cs, "%n", "\n");
+        std::stringstream ststr;
+        bool isPercent = false;
+        for (auto itr = best.text.begin(); itr != best.text.end(); ++itr) {
+            auto current = *itr;
+            if (isPercent) {
+                // If the last character was a %
+                // For literal scores to sprintf
+                char buffer[7];
+                // For pointers to judgement text
+                const char* out = nullptr;
+                switch (current) {
+                    case 'b':
+                        sprintf(buffer, "%d", beforeCut);
+                        break;
+                    case 'c':
+                        sprintf(buffer, "%d", cutDistance);
+                        break;
+                    case 'a':
+                        sprintf(buffer, "%d", afterCut);
+                        break;
+                    case 'B':
+                        out = getBestSegment(config.beforeCutAngleJudgements, beforeCut);
+                        break;
+                    case 'C':
+                        out = getBestSegment(config.accuracyJudgements, cutDistance);
+                        break;
+                    case 'A':
+                        out = getBestSegment(config.afterCutAngleJudgements, afterCut);
+                        break;
+                    case 's':
+                        sprintf(buffer, "%d", score);
+                        break;
+                    case 'p':
+                        sprintf(buffer, "%.2f", score / 115.0 * 100.0);
+                        break;
+                    case 'n':
+                        sprintf(buffer, "\n");
+                        break;
+                    case '%':
+                    default:
+                        sprintf(buffer, "%c", current);
+                }
+                if (out) {
+                    ststr << out;
+                } else {
+                    ststr << buffer;
+                }
+                isPercent = false;
+                continue;
+            }
+            if (current == '%' && !isPercent) {
+                isPercent = true;
+            } else {
+                ststr.put(current);
+            }
+        }
+        judgement_cs = il2cpp_utils::createcsstr(ststr.str().data());
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         // Numeric display ONLY
         judgement_cs = old_text;
