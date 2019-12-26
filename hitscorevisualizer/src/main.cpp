@@ -7,13 +7,6 @@
 static HSVConfig config;
 
 // Helper functions
-Il2CppString* replaceBuffer(Il2CppString* q, std::string_view left, std::string_view right) {
-    Il2CppString* outp;
-    if (il2cpp_utils::RunMethod(&outp, q, replace, il2cpp_utils::createcsstr(left), il2cpp_utils::createcsstr(right))) {
-        return outp;
-    }
-    return nullptr;
-}
 Il2CppString* concatBuffer(Il2CppString* left, std::string_view right) {
     Il2CppString* outp;
     if (il2cpp_utils::RunMethod(&outp, nullptr, concat, left, il2cpp_utils::createcsstr(right))) {
@@ -179,23 +172,25 @@ void setConfigToCurrentSeason() {
         log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
         // Christmas is 1 + 11 month, 23 - 25 day
         if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
-            if (config.backupBeforeSeason) {
+            if (config.backupBeforeSeason && !fileexists(CONFIG_BACKUP_PATH)) {
                 log(DEBUG, "Backing up config before seasonal swap...");
                 ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
             }
             log(DEBUG, "Setting to Christmas config!");
             config.SetToChristmas();
         } else {
-            // Otherwise, set to standard
-            if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
-                log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
-                ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
-                config = ConfigHelper::LoadConfig(Configuration::config);
-                // Delete the old path to ensure we don't load from it again
-                deletefile(CONFIG_BACKUP_PATH);
-            } else {
-                log(DEBUG, "Setting config to default!");
-                config.SetToDefault();
+            if (config.type != CONFIG_TYPE_STANDARD) {
+                // Otherwise, set to standard
+                if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
+                    log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
+                    ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
+                    config = ConfigHelper::LoadConfig(Configuration::config);
+                    // Delete the old path to ensure we don't load from it again
+                    deletefile(CONFIG_BACKUP_PATH);
+                } else if (config.restoreAfterSeason) {
+                    log(DEBUG, "Setting config to default!");
+                    config.SetToDefault();
+                }
             }
         }
         log(DEBUG, "Writing Config to JSON file!");
@@ -209,6 +204,10 @@ void loadConfig() {
     log(INFO, "Loading Configuration...");
     Configuration::Load();
     config = ConfigHelper::LoadConfig(Configuration::config);
+    if (config.VersionLessThanEqual(2, 3, 0) && config.type == CONFIG_TYPE_CHRISTMAS) {
+        // Let's just auto fix everyone's configs that are less than 2.3.0 and are of Christmas type
+        config.SetToDefault();
+    }
     log(INFO, "Loaded Configuration!");
     setConfigToCurrentSeason();
     log(INFO, "Set Configuration to current season! Type: %i", config.type);

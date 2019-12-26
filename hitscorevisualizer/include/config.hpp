@@ -43,6 +43,8 @@ class HSVConfig {
         bool restoreAfterSeason;
         DisplayMode displayMode;
 
+        bool VersionGreaterThanEqual(int major, int minor, int patch);
+        bool VersionLessThanEqual(int major, int minor, int patch);
         void WriteToConfig(ConfigDocument& config);
         void SetToDefault();
         void SetToChristmas();

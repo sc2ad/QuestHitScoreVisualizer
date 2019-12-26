@@ -6,6 +6,6 @@ if (-not ($PSVersionTable.PSEdition -eq "Core")) {
 }
 
 & $buildScript NDK_PROJECT_PATH=$PSScriptRoot APP_BUILD_SCRIPT=$PSScriptRoot/Android.mk NDK_APPLICATION_MK=$PSScriptRoot/Application.mk
-& adb push libs/arm64-v8a/libquestboard.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libquestboard.so
+& adb push libs/arm64-v8a/libhitscorevisualizer.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libhitscorevisualizer.so
 & adb shell am force-stop com.beatgames.beatsaber
 & adb shell am start com.beatgames.beatsaber/com.unity3d.player.UnityPlayerActivity

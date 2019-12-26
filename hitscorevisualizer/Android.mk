@@ -35,7 +35,7 @@ rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 
 include $(CLEAR_VARS)
 LOCAL_LDLIBS := -llog
-LOCAL_CFLAGS    := -D"MOD_ID=\"HitScoreVisualizer\"" -D"VERSION=\"3.0.0\"" -I"C:\Program Files\Unity\Hub\Editor\2018.3.14f1\Editor\Data\il2cpp\libil2cpp"
+LOCAL_CFLAGS    := -D"MOD_ID=\"HitScoreVisualizer\"" -D"VERSION=\"3.1.0\"" -I"C:\Program Files\Unity\Hub\Editor\2018.3.14f1\Editor\Data\il2cpp\libil2cpp"
 LOCAL_MODULE    := hitscorevisualizer
 LOCAL_C_INCLUDES := ./include
 # LOCAL_SHARED_LIBRARIES := testil2cpp

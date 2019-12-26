@@ -16,7 +16,10 @@ std::vector<segment> getSegments(rapidjson::Value& arr) {
     for (int i = 0; i < size; i++) {
         auto& currentValue = arr[i];
         segment toAdd;
-        toAdd.threshold = currentValue["threshold"].GetInt();
+        auto itr = currentValue.FindMember("threshold");
+        if (itr != currentValue.MemberEnd()) {
+            toAdd.threshold = itr->value.GetInt();
+        }
         toAdd.text = currentValue["text"].GetString();
         out.push_back(toAdd);
     }
@@ -29,7 +32,10 @@ std::vector<judgement> getJudgements(rapidjson::Value& arr) {
     for (int i = 0; i < size; i++) {
         auto& currentValue = arr[i];
         judgement toAdd;
-        toAdd.threshold = currentValue["threshold"].GetInt();
+        auto itr = currentValue.FindMember("threshold");
+        if (itr != currentValue.MemberEnd()) {
+            toAdd.threshold = itr->value.GetInt();
+        }
         toAdd.text = currentValue["text"].GetString();
         toAdd.color = std::vector<float>();
         if (currentValue["color"].Size() != COLOR_ARRAY_LENGTH) {
@@ -39,7 +45,7 @@ std::vector<judgement> getJudgements(rapidjson::Value& arr) {
         for (int j = 0; j < COLOR_ARRAY_LENGTH; j++) {
             toAdd.color.push_back(currentValue["color"][j].GetFloat());
         }
-        auto itr = currentValue.FindMember("fade");
+        itr = currentValue.FindMember("fade");
         if (itr != currentValue.MemberEnd()) {
             toAdd.fade = itr->value.GetBool();
         }
@@ -78,6 +84,14 @@ DisplayMode convertDisplayMode(std::string_view displayMode) {
     }
     // Otherwise, display in default: format
     return DISPLAY_MODE_FORMAT;
+}
+
+bool HSVConfig::VersionLessThanEqual(int major, int minor, int patch) {
+    return major > majorVersion || (major == majorVersion && (minor > minorVersion || (minor == minorVersion && patch >= patchVersion)));
+}
+
+bool HSVConfig::VersionGreaterThanEqual(int major, int minor, int patch) {
+    return major < majorVersion || (major == majorVersion && (minor < minorVersion || (minor == minorVersion && patch <= patchVersion)));
 }
 
 void ConfigHelper::AddJSONJudgement(rapidjson::MemoryPoolAllocator<>& allocator, rapidjson::Document::ValueType& arr, judgement& j) {
@@ -157,10 +171,35 @@ HSVConfig ConfigHelper::LoadConfig(ConfigDocument& config) {
     con.beforeCutAngleJudgements = getSegments(config["beforeCutAngleJudgements"]);
     con.accuracyJudgements = getSegments(config["accuracyJudgements"]);
     con.afterCutAngleJudgements = getSegments(config["afterCutAngleJudgements"]);
-    con.type = (ConfigType)config["type"].GetInt();
-    con.useSeasonalThemes = config["useSeasonalThemes"].GetBool();
-    con.backupBeforeSeason = config["backupBeforeSeason"].GetBool();
-    con.restoreAfterSeason = config["restoreAfterSeason"].GetBool();
+    auto itr = config.FindMember("type");
+    auto end = config.MemberEnd();
+    if (itr != end) {
+        con.type = (ConfigType)itr->value.GetInt();
+    } else {
+        // Assume standard type
+        con.type = CONFIG_TYPE_STANDARD;
+    }
+    itr = config.FindMember("useSeasonalThemes");
+    if (itr != end) {
+        con.useSeasonalThemes = itr->value.GetBool();
+    } else {
+        // Default to true
+        con.useSeasonalThemes = true;
+    }
+    itr = config.FindMember("backupBeforeSeason");
+    if (itr != end) {
+        con.backupBeforeSeason = itr->value.GetBool();
+    } else {
+        // Default to true
+        con.backupBeforeSeason = true;
+    }
+    itr = config.FindMember("restoreAfterSeason");
+    if (itr != end) {
+        con.restoreAfterSeason = itr->value.GetBool();
+    } else {
+        // Default to true
+        con.restoreAfterSeason = true;
+    }
     con.displayMode = convertDisplayMode(config["displayMode"].GetString());
     return con;
 }
@@ -200,7 +239,7 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
 
 void HSVConfig::SetToDefault() {
     majorVersion = 2;
-    minorVersion = 2;
+    minorVersion = 4;
     patchVersion = 0;
     judgements = std::vector<judgement>(6);
     ConfigHelper::CreateJudgement(judgements, 0, 115, "%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0});
@@ -230,7 +269,7 @@ void HSVConfig::SetToChristmas() {
     // Or, Set it directly
     // Save these parameters to restore
     majorVersion = 2;
-    minorVersion = 3;
+    minorVersion = 4;
     patchVersion = 0;
     judgements = std::vector<judgement>(5);
     ConfigHelper::CreateJudgement(judgements, 0, 115, "MERRY!\n%s", {1.0, 1.0, 1.0, 1.0});
@@ -246,6 +285,6 @@ void HSVConfig::SetToChristmas() {
     // Add UI effects
     // COMING SOON
     type = CONFIG_TYPE_CHRISTMAS;
-    backupBeforeSeason = true;
+    backupBeforeSeason = false;
     displayMode = DISPLAY_MODE_FORMAT;
 }
