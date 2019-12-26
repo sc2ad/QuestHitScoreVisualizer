@@ -171,16 +171,19 @@ void setConfigToCurrentSeason() {
         tm* currentTm = std::localtime(&now);
         log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
         // Christmas is 1 + 11 month, 23 - 25 day
-        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 25)) {
-            if (config.backupBeforeSeason && !fileexists(CONFIG_BACKUP_PATH)) {
+        if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 24)) {
+            if (config.backupBeforeSeason) {
                 log(DEBUG, "Backing up config before seasonal swap...");
+                // Before we backup, we must first ensure we have written out the correct info
+                // So we don't have to fail to parse it again in the future
+                config.WriteToConfig(Configuration::config);
                 ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
             }
             log(DEBUG, "Setting to Christmas config!");
             config.SetToChristmas();
         } else {
             if (config.type != CONFIG_TYPE_STANDARD) {
-                // Otherwise, set to standard
+                // Otherwise, set to standard - iff config.restoreAfterSeason is set and there is a viable backup
                 if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
                     log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
                     ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
@@ -188,7 +191,8 @@ void setConfigToCurrentSeason() {
                     // Delete the old path to ensure we don't load from it again
                     deletefile(CONFIG_BACKUP_PATH);
                 } else if (config.restoreAfterSeason) {
-                    log(DEBUG, "Setting config to default!");
+                    // If there isn't a viable backup, but we want to restore, set to default
+                    log(DEBUG, "Setting config to default from type: %i", config.type);
                     config.SetToDefault();
                 }
             }
@@ -206,9 +210,11 @@ void loadConfig() {
     config = ConfigHelper::LoadConfig(Configuration::config);
     if (config.VersionLessThanEqual(2, 3, 0) && config.type == CONFIG_TYPE_CHRISTMAS) {
         // Let's just auto fix everyone's configs that are less than 2.3.0 and are of Christmas type
+        log(DEBUG, "Setting to default because version <= 2.3.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
         config.SetToDefault();
+        config.WriteToConfig(Configuration::config);
     }
-    log(INFO, "Loaded Configuration!");
+    log(INFO, "Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
     setConfigToCurrentSeason();
     log(INFO, "Set Configuration to current season! Type: %i", config.type);
 }

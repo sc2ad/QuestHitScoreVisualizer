@@ -160,17 +160,17 @@ void ConfigHelper::CreateSegment(std::vector<segment>& segments, int index, int 
 HSVConfig ConfigHelper::LoadConfig(ConfigDocument& config) {
     HSVConfig con;
 
-    if (!config.IsObject() || config.MemberCount() < 11) {
+    if (!config.IsObject()) {
         con.SetToDefault();
         return con;
     }
     con.majorVersion = config["majorVersion"].GetInt();
     con.minorVersion = config["minorVersion"].GetInt();
     con.patchVersion = config["patchVersion"].GetInt();
-    con.judgements = getJudgements(config["judgements"]);
-    con.beforeCutAngleJudgements = getSegments(config["beforeCutAngleJudgements"]);
-    con.accuracyJudgements = getSegments(config["accuracyJudgements"]);
-    con.afterCutAngleJudgements = getSegments(config["afterCutAngleJudgements"]);
+    con.judgements = getJudgements(config["judgments"]);
+    con.beforeCutAngleJudgements = getSegments(config["beforeCutAngleJudgments"]);
+    con.accuracyJudgements = getSegments(config["accuracyJudgments"]);
+    con.afterCutAngleJudgements = getSegments(config["afterCutAngleJudgments"]);
     auto itr = config.FindMember("type");
     auto end = config.MemberEnd();
     if (itr != end) {
@@ -197,8 +197,8 @@ HSVConfig ConfigHelper::LoadConfig(ConfigDocument& config) {
     if (itr != end) {
         con.restoreAfterSeason = itr->value.GetBool();
     } else {
-        // Default to true
-        con.restoreAfterSeason = true;
+        // Default to false, we don't want to restore something else instead of this config
+        con.restoreAfterSeason = false;
     }
     con.displayMode = convertDisplayMode(config["displayMode"].GetString());
     return con;
@@ -222,11 +222,11 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
         ConfigHelper::AddJSONJudgement(allocator, arr, *itr);
     }
     log(DEBUG, "Starting segments");
-    config.AddMember("judgements", arr, allocator);
+    config.AddMember("judgments", arr, allocator);
     // Add segments
-    ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgements, "beforeCutAngleJudgements");
-    ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgements, "accuracyJudgements");
-    ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgements, "afterCutAngleJudgements");
+    ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgements, "beforeCutAngleJudgments");
+    ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgements, "accuracyJudgments");
+    ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgements, "afterCutAngleJudgments");
     // Set metadata
     log(DEBUG, "Starting metadata");
     config.AddMember("type", type, allocator); // Type can be: 0: Standard, 1: Christmas, 2: Easter, etc.
