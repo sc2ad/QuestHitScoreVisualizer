@@ -40,6 +40,6 @@ LOCAL_MODULE    := hitscorevisualizer
 LOCAL_C_INCLUDES := ./include
 # LOCAL_SHARED_LIBRARIES := testil2cpp
 LOCAL_CPPFLAGS := -std=c++2a
-LOCAL_SRC_FILES  := $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/utils/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/config/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.c) $(call rwildcard,./src,*.cpp)
+LOCAL_SRC_FILES  := $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/utils/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/config/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/customui/,*.cpp) $(call rwildcard,../beatsaber-hook/shared/inline-hook/,*.c) $(call rwildcard,./src,*.cpp)
 #LOCAL_STATIC_LIBRARIES := libhook
 include $(BUILD_SHARED_LIBRARY)

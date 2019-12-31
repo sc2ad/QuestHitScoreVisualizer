@@ -37,11 +37,11 @@ const char* getBestSegment(std::vector<segment>& segments, int comparison) {
 }
 void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
     static auto tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
-    static auto set_richText = il2cpp_utils::GetMethod(tmp_class, "set_richText", 1);
-    static auto set_enableWordWrapping = il2cpp_utils::GetMethod(tmp_class, "set_enableWordWrapping", 1);
-    static auto set_overflowMode = il2cpp_utils::GetMethod(tmp_class, "set_overflowMode", 1);
-    static auto get_text = il2cpp_utils::GetMethod(tmp_class, "get_text", 0);
-    static auto set_text = il2cpp_utils::GetMethod(tmp_class, "set_text", 1);
+    static auto set_richText = il2cpp_utils::FindMethod(tmp_class, "set_richText", 1);
+    static auto set_enableWordWrapping = il2cpp_utils::FindMethod(tmp_class, "set_enableWordWrapping", 1);
+    static auto set_overflowMode = il2cpp_utils::FindMethod(tmp_class, "set_overflowMode", 1);
+    static auto get_text = il2cpp_utils::FindMethod(tmp_class, "get_text", 0);
+    static auto set_text = il2cpp_utils::FindMethod(tmp_class, "set_text", 1);
     static auto str_class = il2cpp_utils::GetClassFromName("System", "String");
     // TODO FIX YUCKY HACK
     if (replace == nullptr) {
@@ -89,6 +89,8 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         std::stringstream ststr;
         bool isPercent = false;
+        // TODO: Can make this EVEN FASTER by getting a list of indices of where the %'s are ONCE
+        // And then replacing the corresponding indices with them as we iterate
         for (auto itr = best.text.begin(); itr != best.text.end(); ++itr) {
             auto current = *itr;
             if (isPercent) {
@@ -204,6 +206,11 @@ void setConfigToCurrentSeason() {
     }
 }
 
+void test() {
+    CustomUI::TextObject textObj;
+    textObj.create();
+}
+
 void loadConfig() {
     log(INFO, "Loading Configuration...");
     Configuration::Load();
@@ -222,6 +229,6 @@ void loadConfig() {
 extern "C" void load() {
     loadConfig();
     log(INFO, "Installing hooks...");
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::GetMethod("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethod("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
     log(INFO, "Installed hooks!");
 }
