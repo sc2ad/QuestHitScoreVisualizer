@@ -206,11 +206,6 @@ void setConfigToCurrentSeason() {
     }
 }
 
-void test() {
-    CustomUI::TextObject textObj;
-    textObj.create();
-}
-
 void loadConfig() {
     log(INFO, "Loading Configuration...");
     Configuration::Load();
