@@ -1,0 +1,27 @@
+{
+    "id": "QuestHitscoreVisualizer",
+    "name": "Hitscore Visualizer",
+    "author": "Sc2ad",
+    "description": [
+        
+        "It visualizes your scores with fancy colors or even images!",
+        
+        "Now a completely standalone mod, based off of Ratsby&#39;s original PC mod."
+        
+    ],
+    "category": "Gameplay",
+    "gameVersion": "1.6.0",
+    "version": "0.1.0",
+    "platform": "Quest",
+    "components": [
+        {
+            "type": "HookMod",
+            "installAction": {
+                "installLibraryFile": "libquesthitscorevisualizer.so"
+            },
+            "uninstallAction": {
+                "removeLibraryFile": "libquesthitscorevisualizer.so"
+            }
+        }
+    ]
+}

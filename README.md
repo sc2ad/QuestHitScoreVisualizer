@@ -1,7 +1,7 @@
 # QuestCountersPlus
 
-This is an Oculus Quest port of the Hit Score Visualizer mod for Beat Saber. This is missing many features still because my C is shaky at best... This uses jakibaki's modloader, found here: https://github.com/jakibaki/beatsaber-hook
+This is an Oculus Quest standalone port of the original Hit Score Visualizer on PC.
 
 ## Installation
 
-I'll go over this at some point, it works as a standalone mod when added as a mod to emulamer's BeatOn repo (no link until a formal release).
+Download from the releases page (or the latest build artifact) and install it to BMBF.

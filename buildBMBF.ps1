@@ -1,3 +1,4 @@
+# Builds a .zip file for loading with BMBF
 $NDKPath = Get-Content $PSScriptRoot/ndkpath.txt
 
 $buildScript = "$NDKPath/build/ndk-build"
@@ -6,6 +7,4 @@ if (-not ($PSVersionTable.PSEdition -eq "Core")) {
 }
 
 & $buildScript NDK_PROJECT_PATH=$PSScriptRoot APP_BUILD_SCRIPT=$PSScriptRoot/Android.mk NDK_APPLICATION_MK=$PSScriptRoot/Application.mk
-& adb push libs/arm64-v8a/libhitscorevisualizer.so /sdcard/Android/data/com.beatgames.beatsaber/files/mods/libhitscorevisualizer.so
-& adb shell am force-stop com.beatgames.beatsaber
-& adb shell am start com.beatgames.beatsaber/com.unity3d.player.UnityPlayerActivity
+Compress-Archive -Path "./libs/arm64-v8a/libquesthitscorevisualizer.so","./bmbfmod.json" -DestinationPath "./questhitscorevisualizer_v4.0.0.zip" -Update

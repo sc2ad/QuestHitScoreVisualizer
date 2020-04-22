@@ -21,10 +21,10 @@ Il2CppString* concatBuffer(Il2CppString* left, Il2CppString* right) {
     }
     return nullptr;
 }
-const char* getBestSegment(std::vector<segment>& segments, int comparison) {
+std::optional<segment> getBestSegment(std::vector<segment>& segments, int comparison) {
     auto size = segments.size();
     if (size == 0) {
-        return "";
+        return std::nullopt;
     }
     auto& best = segments[size - 1];
     for (int i = size - 2; i >= 0; i--) {
@@ -33,9 +33,9 @@ const char* getBestSegment(std::vector<segment>& segments, int comparison) {
         }
         best = segments[i];
     }
-    return best.text;
+    return best;
 }
-void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
+void checkjudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
     static auto tmp_class = il2cpp_utils::GetClassFromName("TMPro", "TMP_Text");
     static auto set_richText = il2cpp_utils::FindMethod(tmp_class, "set_richText", 1);
     static auto set_enableWordWrapping = il2cpp_utils::FindMethod(tmp_class, "set_enableWordWrapping", 1);
@@ -48,14 +48,14 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
         replace = str_class->methods[96];
         concat = str_class->methods[112];
     }
-    static auto length = config.judgements.size();
+    static auto length = config.judgments.size();
     int score = beforeCut + afterCut + cutDistance;
-    auto& best = config.judgements[length - 1];
+    auto& best = config.judgments[length - 1];
     for (int i = length - 2; i >= 0; i--) {
-        if (config.judgements[i].threshold > score) {
+        if (config.judgments[i].threshold > score) {
             break;
         }
-        best = config.judgements[i];
+        best = config.judgments[i];
     }
 
     // TODO Add fading
@@ -84,7 +84,7 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
     // Get Text
     Il2CppString* old_text;
     il2cpp_utils::RunMethod(&old_text, text, get_text);
-    Il2CppString* judgement_cs = nullptr;
+    Il2CppString* judgment_cs = nullptr;
 
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         std::stringstream ststr;
@@ -97,7 +97,7 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
                 // If the last character was a %
                 // For literal scores to sprintf
                 char buffer[7];
-                // For pointers to judgement text
+                // For pointers to judgment text
                 const char* out = nullptr;
                 switch (current) {
                     case 'b':
@@ -110,13 +110,13 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
                         sprintf(buffer, "%d", afterCut);
                         break;
                     case 'B':
-                        out = getBestSegment(config.beforeCutAngleJudgements, beforeCut);
+                        out = getBestSegment(config.beforeCutAnglejudgments, beforeCut);
                         break;
                     case 'C':
-                        out = getBestSegment(config.accuracyJudgements, cutDistance);
+                        out = getBestSegment(config.accuracyjudgments, cutDistance);
                         break;
                     case 'A':
-                        out = getBestSegment(config.afterCutAngleJudgements, afterCut);
+                        out = getBestSegment(config.afterCutAnglejudgments, afterCut);
                         break;
                     case 's':
                         sprintf(buffer, "%d", score);
@@ -145,25 +145,25 @@ void checkJudgements(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCu
                 ststr.put(current);
             }
         }
-        judgement_cs = il2cpp_utils::createcsstr(ststr.str().data());
+        judgment_cs = il2cpp_utils::createcsstr(ststr.str().data());
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         // Numeric display ONLY
-        judgement_cs = old_text;
+        judgment_cs = old_text;
     } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
         // Score on top
         // Add newline
-        judgement_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text.data());
+        judgment_cs = concatBuffer(concatBuffer(old_text, "\n"), best.text.data());
     } else {
         // Text on top
-        judgement_cs = il2cpp_utils::createcsstr(best.text.data());
-        log(DEBUG, "Displaying judgement text on top!");
+        judgment_cs = il2cpp_utils::createcsstr(best.text.data());
+        log(DEBUG, "Displaying judgment text on top!");
         log(DEBUG, "Old Text: %s", to_utf8(csstrtostr(old_text)).c_str());
-        auto temp = concatBuffer(judgement_cs, "\n");
+        auto temp = concatBuffer(judgment_cs, "\n");
         log(DEBUG, "New temp text: %s", to_utf8(csstrtostr(temp)).c_str());
         // Add newline
-        judgement_cs = concatBuffer(temp, old_text);
+        judgment_cs = concatBuffer(temp, old_text);
     }
-    il2cpp_utils::RunMethod(text, set_text, judgement_cs);
+    il2cpp_utils::RunMethod(text, set_text, judgment_cs);
 }
 // Checks season, sets config to correct season
 void setConfigToCurrentSeason() {
@@ -224,6 +224,7 @@ void loadConfig() {
 extern "C" void load() {
     loadConfig();
     log(INFO, "Installing hooks...");
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethod("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "InitAndPresent", 6));
     log(INFO, "Installed hooks!");
 }

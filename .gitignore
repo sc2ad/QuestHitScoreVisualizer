@@ -1,10 +1,45 @@
+# Prerequisites
+*.d
 
-\.vscode/
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
 
-hitscorevisualizer/obj/local/armeabi-v7a/
+# Precompiled Headers
+*.gch
+*.pch
 
-temp/obj/local/armeabi-v7a/
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
 
-obj/*
+# Fortran module files
+*.mod
+*.smod
 
-*/obj/
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# VSCode config stuff
+!.vscode/c_cpp_properties.json
+!.vscode/tasks.json
+
+# NDK stuff
+out/
+[Ll]ib/
+[Ll]ibs/
+[Oo]bj/
+[Oo]bjs/
+ndkpath.txt
+*.zip

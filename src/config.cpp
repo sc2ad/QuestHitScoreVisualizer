@@ -1,0 +1,314 @@
+#include "../include/utils.hpp"
+#include "../include/config.hpp"
+#include "../../beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "../../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
+#include "../../beatsaber-hook/rapidjson/include/rapidjson/document.h"
+#include "../../beatsaber-hook/shared/utils/logging.h"
+#include <stddef.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+
+// Returns true on success, false if any segment is invalid (thus the config is invalid)
+bool getSegments(std::vector<segment>& out, rapidjson::Value& arr, DisplayMode_t displayMode) {
+    auto size = arr.Size();
+    for (int i = 0; i < size; i++) {
+        auto& currentValue = arr[i];
+        segment toAdd;
+
+        if (auto thresh = getInt(currentValue, "threshold")) {
+            toAdd.threshold = *thresh;
+        }
+        toAdd.text = getString(currentValue, "text");
+        toAdd.imagePath = getString(currentValue, "imagePath");
+        
+        // If text is required but not provided, fail
+        if (requires_text(displayMode) && !toAdd.text) {
+            log(ERROR, "Config could not be loaded! displayMode: %d requires text, but segment: %d had none!", displayMode, i);
+            return false;
+        }
+        // If an image is required but not provided AND no fallback text is available, fail
+        // This will bring attention to image only displays failing to have images for all text
+        if (requires_image(displayMode) && !toAdd.imagePath) {
+            if (requires_text(displayMode) && toAdd.text) {
+                log(WARNING, "Attempted to load image from: displayMode: %d, but segment: %d had none!", displayMode, i);
+                log(INFO, "Will not use an image for this segment");
+            } else {
+                log(WARNING, "Config could not be loaded! displayMode: %d requires an image, but segment: %d had none!", displayMode, i);
+                return false;
+            }
+        }
+        // Redundant failsafe, should never occur
+        if (!toAdd.text && !toAdd.imagePath) {
+            log(ERROR, "Config could not be loaded! Missing text and image for segment: %d", i);
+            return false;
+        }
+        out.push_back(toAdd);
+    }
+    return true;
+}
+
+bool getJudgments(std::vector<judgment>& out, rapidjson::Value& arr, DisplayMode_t displayMode) {
+    auto size = arr.Size();
+    for (int i = 0; i < size; i++) {
+        auto& currentValue = arr[i];
+        judgment toAdd;
+        if (auto thresh = getInt(currentValue, "threshold")) {
+            toAdd.threshold = *thresh;
+        }
+        toAdd.text = getString(currentValue, "text");
+        toAdd.imagePath = getString(currentValue, "imagePath");
+        toAdd.fade = getBool(currentValue, "fade");
+
+        auto itr = currentValue.FindMember("color");
+        if (itr != currentValue.MemberEnd()) {
+            auto size = itr->value.GetArray().Size();
+            if (size == COLOR_ARRAY_LENGTH) {
+                std::vector<float> c(COLOR_ARRAY_LENGTH);
+                for (int j = 0; j < itr->value.GetArray().Size(); j++) {
+                    c.push_back(itr->value[j].GetFloat());
+                }
+                toAdd.color.emplace(c);
+            } else {
+                toAdd.color = std::nullopt;
+            }
+        } else {
+            toAdd.color = std::nullopt;
+        }
+
+        // If text is required but not provided, fail
+        if (requires_text(displayMode) && !toAdd.text) {
+            log(ERROR, "Config could not be loaded! displayMode: %d requires text, but judgment: %d had none!", displayMode, i);
+            return false;
+        }
+        // If color is not provided, revert to default color.
+        if (requires_text(displayMode) && !toAdd.color) {
+            log(WARNING, "Could not load color for judgment: %d, using white!", i);
+            toAdd.color.emplace(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f});
+        }
+        // If an image is required but not provided AND no fallback text is available, fail
+        // This will bring attention to image only displays failing to have images for all text
+        if (requires_image(displayMode) && !toAdd.imagePath) {
+            if (requires_text(displayMode) && toAdd.text) {
+                log(WARNING, "Attempted to load image from: displayMode: %d, but judgment: %d had none!", displayMode, i);
+                log(INFO, "Will not use an image for this judgment");
+                if (!toAdd.color) {
+                    log(INFO, "Using default color!");
+                    toAdd.color.emplace(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f});
+                }
+            } else {
+                log(WARNING, "Config could not be loaded! displayMode: %d requires an image, but judgment: %d had none!", displayMode, i);
+                return false;
+            }
+        }
+        // Redundant failsafe, should never occur
+        if (!toAdd.text && !toAdd.imagePath) {
+            log(WARNING, "Config could not be loaded! Missing text and image for judgment: %d", i);
+            return false;
+        }
+        out.push_back(toAdd);
+    }
+    return true;
+}
+
+bool HSVConfig::VersionLessThanEqual(int major, int minor, int patch) {
+    return major > majorVersion || (major == majorVersion && (minor > minorVersion || (minor == minorVersion && patch >= patchVersion)));
+}
+
+bool HSVConfig::VersionGreaterThanEqual(int major, int minor, int patch) {
+    return major < majorVersion || (major == majorVersion && (minor < minorVersion || (minor == minorVersion && patch <= patchVersion)));
+}
+
+void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, rapidjson::Document::ValueType& arr, judgment& j) {
+    rapidjson::Value v(rapidjson::kObjectType);
+    v.AddMember("threshold", j.threshold, allocator);
+    if (j.text) {
+        v.AddMember("text", rapidjson::GenericStringRef<char>(j.text->data()), allocator);
+    }
+    if (j.color) {
+        rapidjson::Document::ValueType color(rapidjson::kArrayType);
+        for (int i = 0; i < min(j.color->size(), COLOR_ARRAY_LENGTH); i++) {
+            color.PushBack((*j.color)[i], allocator);
+        }
+        v.AddMember("color", color, allocator);
+    }
+    if (j.fade) {
+        v.AddMember("fade", *j.fade, allocator);
+    }
+    if (j.imagePath) {
+        v.AddMember("imagePath", rapidjson::GenericStringRef<char>(j.imagePath->data()), allocator);
+    }
+    arr.PushBack(v, allocator);
+}
+
+void ConfigHelper::AddJSONSegment(rapidjson::Document::AllocatorType& allocator, rapidjson::Document::ValueType& arr, segment& s) {
+    rapidjson::Value v(rapidjson::kObjectType);
+    v.AddMember("threshold", s.threshold, allocator);
+    if (s.text) {
+        v.AddMember("text", rapidjson::GenericStringRef<char>(*s.text), allocator);
+    }
+    if (s.imagePath) {
+        v.AddMember("imagePath", rapidjson::GenericStringRef<char>(s.imagePath->data()), allocator);
+    }
+    arr.PushBack(v, allocator);
+}
+
+void ConfigHelper::BackupConfig(ConfigDocument& config, std::string_view newPath) {
+    if (!direxists(CONFIG_PATH)) {
+        mkdir(CONFIG_PATH, 0700);
+    }
+    rapidjson::StringBuffer buf;
+    rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buf);
+    config.Accept(writer);
+    writefile(newPath.data(), buf.GetString());
+}
+
+void ConfigHelper::RestoreConfig(std::string_view newPath) {
+    writefile(getconfigpath().data(), readfile(newPath.data()));
+    Configuration::Reload();
+}
+
+void ConfigHelper::CreateJSONSegments(rapidjson::MemoryPoolAllocator<>& allocator, ConfigDocument& config, std::vector<segment>& vector, std::string_view name) {
+    auto arr = rapidjson::Value(rapidjson::kArrayType);
+    for (auto itr = vector.begin(); itr != vector.end(); ++itr) {
+        ConfigHelper::AddJSONSegment(allocator, arr, *itr);
+    }
+    config.AddMember(rapidjson::GenericStringRef<char>(name.data()), arr, allocator);
+}
+
+bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
+    if (!config.IsObject()) {
+        con.SetToDefault();
+        return true;
+    }
+    con.majorVersion = *RET_F_UNLESS(getInt(config, "majorVersion", true));
+    con.minorVersion = *RET_F_UNLESS(getInt(config, "minorVersion", true));
+    con.patchVersion = *RET_F_UNLESS(getInt(config, "patchVersion", true));
+    con.displayMode = convertDisplayMode(*RET_F_UNLESS(getString(config, "displayMode", true)));
+
+    auto judgments = *RET_F_UNLESS(getValue(config, "judgments", true));
+    auto beforeCutAngleJudgments = *RET_F_UNLESS(getValue(config, "beforeCutAngleJudgments", true));
+    auto accuracyJudgments = *RET_F_UNLESS(getValue(config, "accuracyJudgments", true));
+    auto afterCutAngleJudgments = *RET_F_UNLESS(getValue(config, "afterCutAngleJudgments", true));
+    RET_F_UNLESS(getJudgments(con.judgments, judgments, con.displayMode));
+    RET_F_UNLESS(getSegments(con.beforeCutAngleJudgments, beforeCutAngleJudgments, con.displayMode));
+    RET_F_UNLESS(getSegments(con.accuracyJudgments, accuracyJudgments, con.displayMode));
+    RET_F_UNLESS(getSegments(con.afterCutAngleJudgments, afterCutAngleJudgments, con.displayMode));
+
+    // Default to standard type
+    con.type = (ConfigType_t)getInt(config, "type").value_or(CONFIG_TYPE_STANDARD);
+    // Default to true
+    con.useSeasonalThemes = getBool(config, "useSeasonalThemes").value_or(true);
+    // Default to true
+    con.backupBeforeSeason = getBool(config, "backupBeforeSeason").value_or(true);
+    // Default to true
+    con.restoreAfterSeason = getBool(config, "restoreAfterSeason").value_or(true);
+    // Default to false
+    con.useFixedPos = getBool(config, "useFixedPos").value_or(false);
+    // Default to 0
+    con.fixedPosX = getFloat(config, "fixedPosX").value_or(0);
+    con.fixedPosY = getFloat(config, "fixedPosY").value_or(0);
+    con.fixedPosZ = getFloat(config, "fixedPosZ").value_or(0);
+    // Default to true
+    con.doIntermediateUpdates = getBool(config, "doIntermediateUpdates").value_or(true);
+    // Default to false
+    con.isDefaultConfig = getBool(config, "isDefaultConfig").value_or(false);
+    return true;
+}
+
+void HSVConfig::WriteToConfig(ConfigDocument& config) {
+    log(DEBUG, "Starting to write to config");
+    config.SetObject();
+    config.RemoveAllMembers();
+    rapidjson::MemoryPoolAllocator<>& allocator = config.GetAllocator();
+    // Add versions
+    config.AddMember("majorVersion", majorVersion, allocator);
+    config.AddMember("minorVersion", minorVersion, allocator);
+    config.AddMember("patchVersion", patchVersion, allocator);
+    auto arr = rapidjson::Value(rapidjson::kArrayType);
+    log(DEBUG, "Starting judgments");
+    log(DEBUG, "judgments length: %i", judgments.size());
+    // Add judgments
+    for (auto itr = judgments.begin(); itr != judgments.end(); ++itr) {
+        log(DEBUG, "judgment: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text.data(), itr->color[0], itr->color[1], itr->color[2], itr->color[3]);
+        ConfigHelper::AddJSONJudgment(allocator, arr, *itr);
+    }
+    log(DEBUG, "Starting segments");
+    config.AddMember("judgments", arr, allocator);
+    // Add segments
+    ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgments, "beforeCutAngleJudgments");
+    ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgments, "accuracyJudgments");
+    ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgments, "afterCutAngleJudgments");
+    // Set metadata
+    log(DEBUG, "Starting metadata");
+    config.AddMember("type", type, allocator); // Type can be: 0: Standard, 1: Christmas, 2: Easter, etc.
+    config.AddMember("useSeasonalThemes", useSeasonalThemes, allocator);
+    config.AddMember("backupBeforeSeason", backupBeforeSeason, allocator);
+    config.AddMember("restoreAfterSeason", restoreAfterSeason, allocator);
+    config.AddMember("displayMode", rapidjson::GenericStringRef<char>(convertDisplayMode(displayMode)), allocator);
+    config.AddMember("useFixedPos", useFixedPos, allocator);
+    config.AddMember("fixedPosX", fixedPosX, allocator);
+    config.AddMember("fixedPosY", fixedPosY, allocator);
+    config.AddMember("fixedPosZ", fixedPosZ, allocator);
+    config.AddMember("doIntermediateUpdates", doIntermediateUpdates, allocator);
+    config.AddMember("isDefaultConfig", isDefaultConfig, allocator);
+    log(DEBUG, "Complete!");
+}
+
+void HSVConfig::SetToDefault() {
+    majorVersion = 2;
+    minorVersion = 4;
+    patchVersion = 4;
+    judgments = std::vector<judgment>(6);
+    judgments[0].SetText("%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0}, 115);
+    judgments[1].SetText("<size=80%>%BExcellent%A</size>%n%s", {0.0, 1.0, 0.0, 1.0}, 101);
+    judgments[2].SetText("<size=80%>%BGreat%A</size>%n%s", {1.0, 0.980392158, 0.0, 1.0}, 90);
+    judgments[3].SetText("<size=80%>%BGood%A</size>%n%s", {1.0, 0.6, 0.0, 1.0}, 80, true);
+    judgments[4].SetText("<size=80%>%BDecent%A</size>%n%s", {1.0, 0.0, 0.0, 1.0}, 60, true);
+    judgments[5].SetText("<size=80%>%BWay Off%A</size>%n%s", {0.5, 0.0, 0.0, 1.0}, 0, true);
+    beforeCutAngleJudgments = std::vector<segment>(2);
+    beforeCutAngleJudgments[0].SetText("+", 70);
+    beforeCutAngleJudgments[1].SetText(" ");
+    accuracyJudgments = std::vector<segment>(2);
+    accuracyJudgments[0].SetText("+", 15);
+    accuracyJudgments[1].SetText(" ");
+    afterCutAngleJudgments = std::vector<segment>(2);
+    afterCutAngleJudgments[0].SetText("+", 30);
+    afterCutAngleJudgments[1].SetText(" ");
+    displayMode = DISPLAY_MODE_FORMAT;
+    useFixedPos = false;
+    fixedPosX = 0;
+    fixedPosY = 0;
+    fixedPosZ = 0;
+    doIntermediateUpdates = false;
+    type = CONFIG_TYPE_STANDARD;
+    useSeasonalThemes = true;
+    backupBeforeSeason = true;
+    restoreAfterSeason = true;
+    isDefaultConfig = true;
+}
+
+// TODO: Revive
+// void HSVConfig::SetToChristmas() {
+//     // Either download the config from somewhere (could be neat)
+//     // Or, Set it directly
+//     // Save these parameters to restore
+//     majorVersion = 2;
+//     minorVersion = 4;
+//     patchVersion = 0;
+//     judgments = std::vector<judgment>(5);
+//     ConfigHelper::Createjudgment(judgments, 0, 115, "MERRY!\n%s", {1.0, 1.0, 1.0, 1.0});
+//     ConfigHelper::Createjudgment(judgments, 1, 101, "<size=80%>Arsenic Sauce</size>\n%s", {0.0, 1.0, 0.0, 1.0});
+//     ConfigHelper::Createjudgment(judgments, 2, 90, "<size=50%>You're a mean one, Mr. Grinch\nYou really are a heel\nYou're as cuddly as a cactus\nYou're as charming as an eel\nMr. Grinch\nYou're a bad banana with a greasy black peel\nYou're a monster, Mr. Grinch\nYour heart's an empty hole\nYour brain is full of spiders\nYou've got garlic in your soul, Mr Grinch\nI wouldn't touch you with a\nThirty-nine and a half foot pole\nYou're a vile one, Mr. Grinch\nYou have termites in your smile\nYou have all the tender sweetness of a seasick crocodile\nMr Grinch\nGiven the choice between the two of you\nI'd take the seasick crocodile\nYou're a foul one, Mr. Grinch\nYou're a nasty wasty skunk\nYour heart is full of unwashed socks\nYour soul is full of gunk\nMr Grinch\nThe three best words that best describe you\nAre as follows, and I quote\nStink\nStank\nStunk\nYou're a rotter Mr Grinch\nYou're the king of sinful sots\nYour heart's a dead tomato splotched with moldy purple spots\nMr Grinch\nYour soul is an appalling dump heap\nOverflowing with the most disgraceful\nAssortment of deplorable rubbish imaginable\nMangled up in tangled up knots\nYou nauseate me, Mr Grinch\nWith a nauseous super nos\nYou're a crooked jerky jockey and\nYou drive a crooked horse\nMr Grinch\nYou're a three-decker sauerkraut\nAnd toadstool sandwich\nWith arsenic sauce</size>\n%s", {1.0, 0.0, 0.0, 1.0});
+//     ConfigHelper::Createjudgment(judgments, 3, 80, "<size=80%>Sot</size>\n%s", {0.7, 0.0, 0.0, 1.0}, true);
+//     ConfigHelper::Createjudgment(judgments, 4, 0, "<size=180%>GREASY!</size>", {0.5, 0.0, 0.0, 1.0}, true);
+//     beforeCutAnglejudgments = std::vector<segment>(0);
+//     accuracyjudgments = std::vector<segment>(0);
+//     afterCutAnglejudgments = std::vector<segment>(0);
+//     // Add particle effects
+//     // COMING SOON
+//     // Add UI effects
+//     // COMING SOON
+//     type = CONFIG_TYPE_CHRISTMAS;
+//     backupBeforeSeason = false;
+//     displayMode = DISPLAY_MODE_FORMAT;
+// }
