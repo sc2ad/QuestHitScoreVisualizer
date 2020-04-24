@@ -1,15 +1,129 @@
 #include "../include/utils.hpp"
 #include "../include/config.hpp"
-#include "../../beatsaber-hook/shared/config/rapidjson-utils.hpp"
-#include "../../beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
-#include "../../beatsaber-hook/rapidjson/include/rapidjson/document.h"
-#include "../../beatsaber-hook/shared/utils/logging.h"
+#include "../extern/beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "../extern/beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
+#include "../extern/beatsaber-hook/rapidjson/include/rapidjson/document.h"
+#include "../extern/beatsaber-hook/shared/utils/logging.h"
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
+bool requires_text(DisplayMode_t d) {
+    return (d & 0b1) != 0;
+}
+
+bool requires_image(DisplayMode_t d) {
+    return (d & 0b10) != 0;
+}
+
+// TODO: Make these definable interfaces
+
+#define GET(obj, fieldName, method, required) auto itr = obj.FindMember(fieldName.data()); \
+if (itr == obj.MemberEnd()) { \
+    if (required) { \
+        log(WARNING, "Failed to find required field: %s! Could not load config", fieldName.data()); \
+    } \
+    return std::nullopt; \
+} \
+return itr->value.method()
+
+std::optional<const int> getInt(rapidjson::Value& obj, std::string_view fieldName, bool required) {
+    GET(obj, fieldName, GetInt, required);
+}
+
+std::optional<float> getFloat(rapidjson::Value& obj, std::string_view fieldName, bool required) {
+    GET(obj, fieldName, GetFloat, required);
+}
+
+std::optional<const char*> getString(rapidjson::Value& obj, std::string_view fieldName, bool required) {
+    GET(obj, fieldName, GetString, required);
+}
+
+std::optional<bool> getBool(rapidjson::Value& obj, std::string_view fieldName, bool required) {
+    GET(obj, fieldName, GetBool, required);
+}
+
+const char* convertDisplayMode(DisplayMode displayMode) {
+    switch (displayMode) {
+        case DISPLAY_MODE_FORMAT:
+            return "format";
+        case DISPLAY_MODE_NUMERIC:
+            return "numeric";
+        case DISPLAY_MODE_SCOREONTOP:
+            return "scoreOnTop";
+        case DISPLAY_MODE_TEXTONLY:
+            return "textOnly";
+        case DISPLAY_MODE_TEXTONTOP:
+            return "textOnTop";
+        case DISPLAY_MODE_IMAGEONLY:
+            return "imageOnly";
+        case DISPLAY_MODE_IMAGEANDTEXT:
+            return "imageAndText";
+    }
+    return "UNKNOWN";
+}
+
+DisplayMode convertDisplayMode(std::string_view displayMode) {
+    if (displayMode == "format") {
+        return DISPLAY_MODE_FORMAT;
+    } else if (displayMode == "numeric") {
+        return DISPLAY_MODE_NUMERIC;
+    } else if (displayMode == "scoreOnTop") {
+        return DISPLAY_MODE_SCOREONTOP;
+    } else if (displayMode == "textOnly") {
+        return DISPLAY_MODE_TEXTONLY;
+    } else if (displayMode == "textOnTop") {
+        return DISPLAY_MODE_TEXTONTOP;
+    } else if (displayMode == "imageOnly") {
+        return DISPLAY_MODE_IMAGEONLY;
+    } else if (displayMode == "imageAndText") {
+        return DISPLAY_MODE_IMAGEANDTEXT;
+    }
+    // Otherwise, display in default format
+    return DISPLAY_MODE_TEXTONTOP;
+}
+
+void judgment::SetImage(std::string imagePath, int threshold) {
+    if (this->threshold != threshold)
+        this->threshold = threshold;
+    this->imagePath.emplace(imagePath);
+}
+
+void judgment::SetText(std::string text, std::vector<const float> color, int threshold, bool fade) {
+    if (this->threshold != threshold)
+        this->threshold = threshold;
+    this->text.emplace(text);
+    std::vector<float> c;
+    for (auto f : color) {
+        c.push_back(f);
+    }
+    this->color.emplace(c);
+    this->fade.emplace(fade);
+}
+
+std::optional<Color> judgment::GetColor() {
+    if (_color) {
+        return _color;
+    }
+    // TODO: Avoid redundant calls when _color is very clearly wrong
+    _color = std::nullopt;
+    if (color) {
+        // Ensure length
+        if (color->size() == COLOR_ARRAY_LENGTH) {
+            _color.emplace((Color){(*color)[0], (*color)[1], (*color)[2], (*color)[3]});
+        }
+    }
+    return _color;
+}
+
 // Returns true on success, false if any segment is invalid (thus the config is invalid)
-bool getSegments(std::vector<segment>& out, rapidjson::Value& arr, DisplayMode_t displayMode) {
+bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_view fieldName, DisplayMode_t displayMode) {
+    auto itr = config.FindMember(fieldName.data());
+    if (itr == config.MemberEnd()) {
+        log(WARNING, "Failed to find required field: %s! Could not load config", fieldName.data());
+        return false;
+    }
+    auto arr = itr->value.GetArray();
     auto size = arr.Size();
     for (int i = 0; i < size; i++) {
         auto& currentValue = arr[i];
@@ -47,7 +161,13 @@ bool getSegments(std::vector<segment>& out, rapidjson::Value& arr, DisplayMode_t
     return true;
 }
 
-bool getJudgments(std::vector<judgment>& out, rapidjson::Value& arr, DisplayMode_t displayMode) {
+bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t displayMode) {
+    auto itr = obj.FindMember("judgments");
+    if (itr == obj.MemberEnd()) {
+        log(WARNING, "Failed to find required field: judgments! Could not load config");
+        return false;
+    }
+    auto arr = itr->value.GetArray();
     auto size = arr.Size();
     for (int i = 0; i < size; i++) {
         auto& currentValue = arr[i];
@@ -57,6 +177,8 @@ bool getJudgments(std::vector<judgment>& out, rapidjson::Value& arr, DisplayMode
         }
         toAdd.text = getString(currentValue, "text");
         toAdd.imagePath = getString(currentValue, "imagePath");
+        toAdd.soundPath = getString(currentValue, "soundPath");
+        toAdd.soundVolume = getFloat(currentValue, "soundVolume");
         toAdd.fade = getBool(currentValue, "fade");
 
         auto itr = currentValue.FindMember("color");
@@ -65,7 +187,8 @@ bool getJudgments(std::vector<judgment>& out, rapidjson::Value& arr, DisplayMode
             if (size == COLOR_ARRAY_LENGTH) {
                 std::vector<float> c(COLOR_ARRAY_LENGTH);
                 for (int j = 0; j < itr->value.GetArray().Size(); j++) {
-                    c.push_back(itr->value[j].GetFloat());
+                    const auto f = itr->value[j].GetFloat();
+                    c.push_back(f);
                 }
                 toAdd.color.emplace(c);
             } else {
@@ -86,7 +209,7 @@ bool getJudgments(std::vector<judgment>& out, rapidjson::Value& arr, DisplayMode
             toAdd.color.emplace(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f});
         }
         // If an image is required but not provided AND no fallback text is available, fail
-        // This will bring attention to image only displays failing to have images for all text
+        // This will bring attention to image only displays failing to have images for all judgments
         if (requires_image(displayMode) && !toAdd.imagePath) {
             if (requires_text(displayMode) && toAdd.text) {
                 log(WARNING, "Attempted to load image from: displayMode: %d, but judgment: %d had none!", displayMode, i);
@@ -126,7 +249,7 @@ void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, 
     }
     if (j.color) {
         rapidjson::Document::ValueType color(rapidjson::kArrayType);
-        for (int i = 0; i < min(j.color->size(), COLOR_ARRAY_LENGTH); i++) {
+        for (int i = 0; i < fmin(j.color->size(), COLOR_ARRAY_LENGTH); i++) {
             color.PushBack((*j.color)[i], allocator);
         }
         v.AddMember("color", color, allocator);
@@ -136,6 +259,12 @@ void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, 
     }
     if (j.imagePath) {
         v.AddMember("imagePath", rapidjson::GenericStringRef<char>(j.imagePath->data()), allocator);
+    }
+    if (j.soundPath) {
+        v.AddMember("soundPath", rapidjson::GenericStringRef<char>(j.soundPath->data()), allocator);
+    }
+    if (j.soundVolume) {
+        v.AddMember("soundVolume", *j.soundVolume, allocator);
     }
     arr.PushBack(v, allocator);
 }
@@ -185,14 +314,10 @@ bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
     con.patchVersion = *RET_F_UNLESS(getInt(config, "patchVersion", true));
     con.displayMode = convertDisplayMode(*RET_F_UNLESS(getString(config, "displayMode", true)));
 
-    auto judgments = *RET_F_UNLESS(getValue(config, "judgments", true));
-    auto beforeCutAngleJudgments = *RET_F_UNLESS(getValue(config, "beforeCutAngleJudgments", true));
-    auto accuracyJudgments = *RET_F_UNLESS(getValue(config, "accuracyJudgments", true));
-    auto afterCutAngleJudgments = *RET_F_UNLESS(getValue(config, "afterCutAngleJudgments", true));
-    RET_F_UNLESS(getJudgments(con.judgments, judgments, con.displayMode));
-    RET_F_UNLESS(getSegments(con.beforeCutAngleJudgments, beforeCutAngleJudgments, con.displayMode));
-    RET_F_UNLESS(getSegments(con.accuracyJudgments, accuracyJudgments, con.displayMode));
-    RET_F_UNLESS(getSegments(con.afterCutAngleJudgments, afterCutAngleJudgments, con.displayMode));
+    RET_F_UNLESS(getJudgments(con.judgments, config, con.displayMode));
+    RET_F_UNLESS(getSegments(con.beforeCutAngleJudgments, config, "beforeCutAngleJudgments", con.displayMode));
+    RET_F_UNLESS(getSegments(con.accuracyJudgments, config, "accuracyJudgments", con.displayMode));
+    RET_F_UNLESS(getSegments(con.afterCutAngleJudgments, config, "afterCutAngleJudgments", con.displayMode));
 
     // Default to standard type
     con.type = (ConfigType_t)getInt(config, "type").value_or(CONFIG_TYPE_STANDARD);
@@ -226,10 +351,10 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     config.AddMember("patchVersion", patchVersion, allocator);
     auto arr = rapidjson::Value(rapidjson::kArrayType);
     log(DEBUG, "Starting judgments");
-    log(DEBUG, "judgments length: %i", judgments.size());
+    log(DEBUG, "judgments length: %lu", judgments.size());
     // Add judgments
     for (auto itr = judgments.begin(); itr != judgments.end(); ++itr) {
-        log(DEBUG, "judgment: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text.data(), itr->color[0], itr->color[1], itr->color[2], itr->color[3]);
+        log(DEBUG, "judgment: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text->data(), (*itr->color)[0], (*itr->color)[1], (*itr->color)[2], (*itr->color)[3]);
         ConfigHelper::AddJSONJudgment(allocator, arr, *itr);
     }
     log(DEBUG, "Starting segments");
@@ -259,12 +384,12 @@ void HSVConfig::SetToDefault() {
     minorVersion = 4;
     patchVersion = 4;
     judgments = std::vector<judgment>(6);
-    judgments[0].SetText("%BFantastic%A%n%s", {1.0, 1.0, 1.0, 1.0}, 115);
-    judgments[1].SetText("<size=80%>%BExcellent%A</size>%n%s", {0.0, 1.0, 0.0, 1.0}, 101);
-    judgments[2].SetText("<size=80%>%BGreat%A</size>%n%s", {1.0, 0.980392158, 0.0, 1.0}, 90);
-    judgments[3].SetText("<size=80%>%BGood%A</size>%n%s", {1.0, 0.6, 0.0, 1.0}, 80, true);
-    judgments[4].SetText("<size=80%>%BDecent%A</size>%n%s", {1.0, 0.0, 0.0, 1.0}, 60, true);
-    judgments[5].SetText("<size=80%>%BWay Off%A</size>%n%s", {0.5, 0.0, 0.0, 1.0}, 0, true);
+    judgments[0].SetText("%BFantastic%A%n%s", {1.0f, 1.0f, 1.0f, 1.0f}, 115);
+    judgments[1].SetText("<size=80%>%BExcellent%A</size>%n%s", {0.0f, 1.0f, 0.0f, 1.0f}, 101);
+    judgments[2].SetText("<size=80%>%BGreat%A</size>%n%s", {1.0f, 0.980392158f, 0.0f, 1.0f}, 90);
+    judgments[3].SetText("<size=80%>%BGood%A</size>%n%s", {1.0f, 0.6f, 0.0f, 1.0f}, 80, true);
+    judgments[4].SetText("<size=80%>%BDecent%A</size>%n%s", {1.0f, 0.0f, 0.0f, 1.0f}, 60, true);
+    judgments[5].SetText("<size=80%>%BWay Off%A</size>%n%s", {0.5f, 0.0f, 0.0f, 1.0f}, 0, true);
     beforeCutAngleJudgments = std::vector<segment>(2);
     beforeCutAngleJudgments[0].SetText("+", 70);
     beforeCutAngleJudgments[1].SetText(" ");
@@ -285,6 +410,11 @@ void HSVConfig::SetToDefault() {
     backupBeforeSeason = true;
     restoreAfterSeason = true;
     isDefaultConfig = true;
+}
+
+void HSVConfig::SetToSeason(ConfigType_t type) {
+    // TODO: Download seasonal config from github
+    log(INFO, "Seasons are not yet supported!");
 }
 
 // TODO: Revive

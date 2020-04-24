@@ -96,6 +96,7 @@
         "typeinfo": "cpp",
         "utility": "cpp",
         "variant": "cpp",
-        "__memory": "cpp"
+        "__memory": "cpp",
+        "__functional_03": "cpp"
     }
 }

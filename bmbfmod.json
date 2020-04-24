@@ -6,7 +6,7 @@
         
         "It visualizes your scores with fancy colors or even images!",
         
-        "Now a completely standalone mod, based off of Ratsby&#39;s original PC mod."
+        "Now a completely standalone mod, based off of Ratsby's original PC mod."
         
     ],
     "category": "Gameplay",
@@ -17,10 +17,10 @@
         {
             "type": "HookMod",
             "installAction": {
-                "installLibraryFile": "libquesthitscorevisualizer.so"
+                "installLibraryFile": "libQuestHitscoreVisualizer.so"
             },
             "uninstallAction": {
-                "removeLibraryFile": "libquesthitscorevisualizer.so"
+                "removeLibraryFile": "libQuestHitscoreVisualizer.so"
             }
         }
     ]

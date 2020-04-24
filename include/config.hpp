@@ -1,5 +1,5 @@
 #pragma once
-#define RAPIDJSON_HAS_STDSTRING 1
+
 #include "../extern/beatsaber-hook/shared/config/config-utils.hpp"
 #include "../extern/beatsaber-hook/shared/utils/logging.h"
 
@@ -15,13 +15,8 @@ typedef enum DisplayMode {
     DISPLAY_MODE_TEXTONTOP = 0b1101
 } DisplayMode_t;
 
-bool requires_text(DisplayMode_t d) {
-    return (d & 0b1) != 0;
-}
-
-bool requires_image(DisplayMode_t d) {
-    return (d & 0b10) != 0;
-}
+bool requires_text(DisplayMode_t d);
+bool requires_image(DisplayMode_t d);
 
 typedef enum ConfigType {
     CONFIG_TYPE_STANDARD,
@@ -31,85 +26,14 @@ typedef enum ConfigType {
 
 #define COLOR_ARRAY_LENGTH 4
 
-// TODO: Make these definable interfaces
+std::optional<const int> getInt(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
+std::optional<float> getFloat(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
+std::optional<const char*> getString(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
+std::optional<bool> getBool(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
 
-#define GET(obj, fieldName, method, required) auto itr = obj.FindMember(fieldName.data()); \
-if (itr == obj.MemberEnd()) { \
-    if (required) { \
-        log(WARNING, "Failed to find required field: %s! Could not load config", fieldName.data()); \
-    } \
-    return std::nullopt; \
-} \
-return itr->value.method()
+const char* convertDisplayMode(DisplayMode displayMode);
 
-#define GET_VAL(obj, fieldName, required) auto itr = obj.FindMember(fieldName.data()); \
-if (itr == obj.MemberEnd()) { \
-    if (required) { \
-        log(WARNING, "Failed to find required field: %s! Could not load config", fieldName.data()); \
-    } \
-    return std::nullopt; \
-} \
-return itr->value
-
-std::optional<const int&> getInt(rapidjson::Value& obj, std::string_view fieldName, bool required = false) {
-    GET(obj, fieldName, GetInt, required);
-}
-
-std::optional<float&> getFloat(rapidjson::Value& obj, std::string_view fieldName, bool required = false) {
-    GET(obj, fieldName, GetFloat, required);
-}
-
-std::optional<const char*> getString(rapidjson::Value& obj, std::string_view fieldName, bool required = false) {
-    GET(obj, fieldName, GetString, required);
-}
-
-std::optional<bool&> getBool(rapidjson::Value& obj, std::string_view fieldName, bool required = false) {
-    GET(obj, fieldName, GetBool, required);
-}
-
-std::optional<rapidjson::Value&> getValue(rapidjson::Value& obj, std::string_view fieldName, bool required = false) {
-    GET_VAL(obj, fieldName, required);
-}
-
-const char* convertDisplayMode(DisplayMode displayMode) {
-    switch (displayMode) {
-        case DISPLAY_MODE_FORMAT:
-            return "format";
-        case DISPLAY_MODE_NUMERIC:
-            return "numeric";
-        case DISPLAY_MODE_SCOREONTOP:
-            return "scoreOnTop";
-        case DISPLAY_MODE_TEXTONLY:
-            return "textOnly";
-        case DISPLAY_MODE_TEXTONTOP:
-            return "textOnTop";
-        case DISPLAY_MODE_IMAGEONLY:
-            return "imageOnly";
-        case DISPLAY_MODE_IMAGEANDTEXT:
-            return "imageAndText";
-    }
-    return "UNKNOWN";
-}
-
-DisplayMode convertDisplayMode(std::string_view displayMode) {
-    if (displayMode == "format") {
-        return DISPLAY_MODE_FORMAT;
-    } else if (displayMode == "numeric") {
-        return DISPLAY_MODE_NUMERIC;
-    } else if (displayMode == "scoreOnTop") {
-        return DISPLAY_MODE_SCOREONTOP;
-    } else if (displayMode == "textOnly") {
-        return DISPLAY_MODE_TEXTONLY;
-    } else if (displayMode == "textOnTop") {
-        return DISPLAY_MODE_TEXTONTOP;
-    } else if (displayMode == "imageOnly") {
-        return DISPLAY_MODE_IMAGEONLY;
-    } else if (displayMode == "imageAndText") {
-        return DISPLAY_MODE_IMAGEANDTEXT;
-    }
-    // Otherwise, display in default format
-    return DISPLAY_MODE_TEXTONTOP;
-}
+DisplayMode convertDisplayMode(std::string_view displayMode);
 
 class judgment {
     public:
@@ -123,22 +47,19 @@ class judgment {
         std::optional<std::vector<float>> color;
         // Whether to fade between colors, if possible.
         std::optional<bool> fade;
-        // Optional path to an image (ignores text, color, and fade fields).
+        // Optional path to an image (ignores text, and fade fields; color is used to tint the image).
         std::optional<std::string> imagePath;
+        // Optional path to a sound to play (plays during existing hitSounds)
+        std::optional<std::string> soundPath;
+        // Optional volume of the sound to play, default of 1.0 volume
+        std::optional<float> soundVolume;
 
-        void SetText(std::string text, std::vector<float>& color, int threshold = 0, bool fade = false) {
-            if (this->threshold != threshold)
-                this->threshold = threshold;
-            this->text.emplace(text);
-            this->color.emplace(color);
-            this->fade.emplace(fade);
-        }
-        void SetImage(std::string imagePath, int threshold = 0) {
-            if (this->threshold != threshold)
-                this->threshold = threshold;
-            this->imagePath.emplace(imagePath);
-        }
-        judgment();
+        void SetText(std::string text, std::vector<const float> color, int threshold = 0, bool fade = false);
+        void SetImage(std::string imagePath, int threshold = 0);
+        std::optional<Color> GetColor();
+    private:
+        // Internal Color
+        std::optional<Color> _color;
 };
 
 class segment {
@@ -160,7 +81,6 @@ class segment {
                 this->threshold = threshold;
             this->imagePath.emplace(imagePath);
         }
-        segment();
 };
 
 class HSVConfig {

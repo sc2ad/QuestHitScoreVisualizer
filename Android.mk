@@ -32,7 +32,7 @@ LOCAL_SRC_FILES  := $(call rwildcard,extern/beatsaber-hook/shared/inline-hook/,*
 # In order to add configuration support to your project, uncomment the following line:
 LOCAL_SRC_FILES  += $(call rwildcard,extern/beatsaber-hook/shared/config/,*.cpp)
 # In order to add custom UI support to your project, uncomment the following line:
-# LOCAL_SRC_FILES  += $(call rwildcard,extern/beatsaber-hook/shared/customui/,*.cpp)
+LOCAL_SRC_FILES  += $(call rwildcard,extern/beatsaber-hook/shared/customui/,*.cpp)
 # Add any new SRC includes from beatsaber-hook or other external libraries here
 LOCAL_SRC_FILES  += $(call rwildcard,src/,*.cpp)
 include $(BUILD_SHARED_LIBRARY)
