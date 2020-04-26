@@ -18,7 +18,7 @@ static bool configValid = true;
 
 #define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
     log(ERROR, "Config failed to load properly! Pushing notification..."); \
-    log(ERROR, "Assertion caught: %s.%s.%d", __FILE__, __PRETTY_FUNCTION__, __LINE__); \
+    log(ERROR, "Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
     configValid = false; \
     notification.pushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
 }
@@ -325,10 +325,11 @@ void loadConfig() {
     Configuration::Load();
     HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, Configuration::config));
     if (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS) {
-        // Let's just auto fix everyone's configs that are less than 2.3.0 and are of Christmas type
+        // Let's just auto fix everyone's configs that are less than or equal to 2.4.0 or are of Christmas type
         log(DEBUG, "Setting to default because version <= 2.4.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
         config.SetToDefault();
         config.WriteToConfig(Configuration::config);
+        configValid = true;
     }
     log(INFO, "Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
     setConfigToCurrentSeason();

@@ -383,7 +383,7 @@ void HSVConfig::SetToDefault() {
     fixedPosX = 0;
     fixedPosY = 0;
     fixedPosZ = 0;
-    doIntermediateUpdates = false;
+    doIntermediateUpdates = true;
     type = CONFIG_TYPE_STANDARD;
     useSeasonalThemes = true;
     backupBeforeSeason = true;
