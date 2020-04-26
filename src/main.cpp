@@ -28,14 +28,13 @@ std::optional<int> getBestJudgment(std::vector<judgment>& judgments, int compari
     if (length == 0) {
         return std::nullopt;
     }
-    auto best = config.judgments[length - 1];
     int i;
-    for (i = 0; i < length - 1; i++) {
-        if (config.judgments[i].threshold >= comparison) {
-            best = config.judgments[i];
+    for (i = 0; i < length; i++) {
+        if (comparison >= config.judgments[i].threshold) {
             break;
         }
     }
+    log(DEBUG, "bestIndex: %d", i);
     return i;
 }
 
@@ -44,9 +43,9 @@ std::optional<segment> getBestSegment(std::vector<segment>& segments, int compar
     if (size == 0) {
         return std::nullopt;
     }
-    auto& best = segments[size - 1];
-    for (int i = size - 2; i >= 0; i--) {
-        if (segments[i].threshold > comparison) {
+    auto& best = segments[0];
+    for (int i = 1; i < size; i++) {
+        if (comparison >= segments[i].threshold) {
             break;
         }
         best = segments[i];
@@ -56,6 +55,7 @@ std::optional<segment> getBestSegment(std::vector<segment>& segments, int compar
 
 Il2CppString* parseFormattedText(judgment best, int beforeCut, int afterCut, int cutDistance) {
     std::stringstream ststr;
+    log(DEBUG, "%d, %d, %d", beforeCut, afterCut, cutDistance);
     bool isPercent = false;
     // TODO: Can make this EVEN FASTER by getting a list of indices of where the %'s are ONCE
     // And then replacing the corresponding indices with them as we iterate
@@ -116,12 +116,13 @@ Il2CppString* parseFormattedText(judgment best, int beforeCut, int afterCut, int
 std::optional<Color> fadeBetween(judgment from, judgment to, int score, Color initialColor) {
     auto reverseLerp = *RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<float>("UnityEngine", "Mathf", "InverseLerp", (float)from.threshold, (float)to.threshold, (float)score));
     
-    auto fadeToColor = *RET_NULLOPT_UNLESS(to.GetColor());
+    auto fadeToColor = *RET_NULLOPT_UNLESS(to.color);
     return RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<Color>("UnityEngine", "Color", "Lerp", initialColor, fadeToColor, reverseLerp));
 }
 
 bool addColor(Il2CppObject* flyingScoreEffect, int bestIndex, int score) {
-    std::optional<Color> color = config.judgments[bestIndex].GetColor();
+    log(DEBUG, "Adding color for bestIndex: %d, score: %d", bestIndex, score);
+    std::optional<Color> color = config.judgments[bestIndex].color;
     if (config.judgments[bestIndex].fade.value_or(false) && bestIndex != 0 && color) {
         color = fadeBetween(config.judgments[bestIndex], config.judgments[bestIndex - 1], score, *color);
     }
@@ -132,7 +133,7 @@ bool addColor(Il2CppObject* flyingScoreEffect, int bestIndex, int score) {
     return true;
 }
 
-bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int cutDistance, int afterCut) {
+bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
     Il2CppObject* text = RET_F_UNLESS(il2cpp_utils::GetFieldValue(flyingScoreEffect, "_text").value_or(nullptr));
 
     // Runtime invoke set_richText to true
@@ -147,7 +148,7 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     Il2CppString* judgment_cs = nullptr;
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
         RET_F_UNLESS(best.text);
-        judgment_cs = parseFormattedText(best, beforeCut, cutDistance, afterCut);
+        judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         RET_F_UNLESS(best.text);
         // Numeric display ONLY
@@ -162,7 +163,7 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     } else if (config.displayMode == DISPLAY_MODE_TEXTONLY) {
         // Will not display images, use formatted display
         RET_F_UNLESS(best.text);
-        judgment_cs = parseFormattedText(best, beforeCut, cutDistance, afterCut);
+        judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_TEXTONTOP) {
         // Text on top
         judgment_cs = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
@@ -178,10 +179,11 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     // Set text if it is not null
     RET_F_UNLESS(judgment_cs);
     RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "text", judgment_cs));
+    log(DEBUG, "Using text: %s", best.text->data());
     return true;
 }
 
-bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int cutDistance, int afterCut) {
+bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
     if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
         RET_F_UNLESS(best.imagePath);
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
@@ -213,10 +215,9 @@ bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int
         auto sprite = RET_F_UNLESS(il2cpp_utils::RunMethod("UnityEngine", "Sprite", "Create", texture, rect, pivot, 1024.0f, 1u, 0).value_or(nullptr));
         // spriteRenderer.set_sprite(sprite);
         RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "sprite", sprite));
-        auto color = best.GetColor();
-        if (color) {
+        if (best.color) {
             // spriteRenderer.set_color(color);
-            RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *color));
+            RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *best.color));
         }
     }
     // TODO: Add segment images here
@@ -248,28 +249,35 @@ bool addAudio(Il2CppObject* textObj, judgment toPlay) {
 }
 
 void checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
+    log(DEBUG, "Checking judgments!");
     if (!configValid) {
         return;
     }
     auto bestIndex = getBestJudgment(config.judgments, beforeCut + afterCut + cutDistance);
     RET_V_UNLESS(bestIndex);
+    log(DEBUG, "Index: %d", *bestIndex);
     auto best = config.judgments[*bestIndex];
 
+    log(DEBUG, "Adding color");
     if (!addColor(flyingScoreEffect, *bestIndex, beforeCut + afterCut + cutDistance)) {
         log(ERROR, "Failed to add color!");
     }
 
-    if (!addImage(flyingScoreEffect, best, beforeCut, cutDistance, afterCut)) {
+    log(DEBUG, "Adding image");
+    if (!addImage(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
         log(ERROR, "Failed to add image!");
     }
 
-    if (!addText(flyingScoreEffect, best, beforeCut, cutDistance, afterCut)) {
+    log(DEBUG, "Adding text");
+    if (!addText(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
         log(ERROR, "Failed to add text!");
     }
 
+    log(DEBUG, "Adding sound");
     if (!addAudio(flyingScoreEffect, best)) {
         log(ERROR, "Failed to add audio!");
     }
+    log(DEBUG, "Complete with judging!");
 }
 // Checks season, sets config to correct season
 void setConfigToCurrentSeason() {
@@ -328,45 +336,42 @@ void loadConfig() {
 }
 
 static Il2CppObject* currentEffect;
-static Il2CppObject* currentEffectCompletionAction;
+static std::map<Il2CppObject*, swingRatingCounter_context_t> swingRatingMap;
 
-void effectDidFinish(effect_context_t* context, Il2CppObject* flyingObjectEffect) {
-    ASSERT_MSG(context != nullptr, "effect_context_t was null for effectDidFinish!");
+// Called during: FlyingObjectEffect.didFinishEvent
+// FlyingScoreEffect.HandleFlyingScoreEffectDidFinish
+void effectDidFinish(Il2CppObject* flyingObjectEffect) {
     if (flyingObjectEffect == currentEffect) {
         currentEffect = nullptr;
     }
-    if (context->actionToRemove) {
-        RET_V_UNLESS(il2cpp_utils::RunMethod(currentEffect, "remove_didFinishEvent", context->actionToRemove));
-        if (context->actionToRemove == currentEffectCompletionAction) {
-            currentEffectCompletionAction = nullptr;
-        }
-    }
-    free(context);
 }
 
 void judgeNoContext(Il2CppObject* flyingScoreEffect, Il2CppObject* noteCutInfo) {
     int beforeCut = 0;
     int afterCut = 0;
     int cutDistance = 0;
-    RET_V_UNLESS(il2cpp_utils::RunMethod("", "ScoreController", "RawScoreWithoutMultiplier", noteCutInfo, beforeCut, afterCut, cutDistance));
+    RET_V_UNLESS(il2cpp_utils::RunMethod("", "ScoreModel", "RawScoreWithoutMultiplier", noteCutInfo, beforeCut, afterCut, cutDistance));
     checkJudgments(flyingScoreEffect, beforeCut, afterCut, cutDistance);
 }
 
-void judge(swingRatingCounter_context_t* context, Il2CppObject* counter) {
-    ASSERT_MSG(context != nullptr, "swingRatingCounter_context_t was null for judge!");
+void judge(Il2CppObject* counter) {
+    // Get FlyingScoreEffect and NoteCutInfo from map
+    auto itr = swingRatingMap.find(counter);
+    if (itr == swingRatingMap.end()) {
+        log(DEBUG, "counter: %p was not in swingRatingMap!", counter);
+        return;
+    }
+    auto context = itr->second;
     int beforeCut = 0;
     int afterCut = 0;
     int cutDistance = 0;
-    if (context->noteCutInfo) {
-        RET_V_UNLESS(il2cpp_utils::RunMethod("", "ScoreController", "RawScoreWithoutMultiplier", context->noteCutInfo, beforeCut, afterCut, cutDistance));
-        if (context->flyingScoreEffect) {
-            checkJudgments(context->flyingScoreEffect, beforeCut, afterCut, cutDistance);
+
+    if (context.noteCutInfo) {
+        RET_V_UNLESS(il2cpp_utils::RunMethod("", "ScoreModel", "RawScoreWithoutMultiplier", context.noteCutInfo, beforeCut, afterCut, cutDistance));
+        if (context.flyingScoreEffect) {
+            checkJudgments(context.flyingScoreEffect, beforeCut, afterCut, cutDistance);
         }
     }
-    if (context->actionToRemove) {
-        RET_V_UNLESS(il2cpp_utils::RunMethod(counter, "remove_didFinishEvent", context->actionToRemove));
-    }
-    free(context);
 }
 
 void HandleSaberSwingRatingCounterChangeEvent(Il2CppObject* self) {
@@ -376,7 +381,7 @@ void HandleSaberSwingRatingCounterChangeEvent(Il2CppObject* self) {
     }
 }
 
-void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos) {
+void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos, float& duration) {
     if (config.useFixedPos) {
         targetPos.x = config.fixedPosX;
         targetPos.y = config.fixedPosY;
@@ -385,33 +390,30 @@ void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos) {
         RET_V_UNLESS(il2cpp_utils::SetPropertyValue(self, "position", targetPos));
 
         if (currentEffect) {
+            // Disable the current effect
             RET_V_UNLESS(il2cpp_utils::SetFieldValue(currentEffect, "_duration", 0.0f));
-            if (currentEffectCompletionAction) {
-                RET_V_UNLESS(il2cpp_utils::RunMethod(currentEffect, "remove_didFinishEvent", currentEffectCompletionAction));
-            }
         }
-        // Create effect_context_t
-        effect_context_t* context = reinterpret_cast<effect_context_t*>(malloc(sizeof(effect_context_t)));
-        auto action = il2cpp_utils::MakeAction(il2cpp_utils::FindField(self, "didFinishEvent"), context, effectDidFinish);
-        context->actionToRemove = action;
-        RET_V_UNLESS(il2cpp_utils::RunMethod(currentEffect, "add_didFinishEvent", action));
-        currentEffectCompletionAction = action;
         currentEffect = self;
+    } else if (!config.doIntermediateUpdates) {
+        // If there are no intermediate updates, in order to remove the 'flickering' score, set the duration to 0 and fix it later
+        // Duration being set to 0 would be wrong, since we would destroy before doing anything
+        duration = 0.01f;
     }
 }
 
 void InitAndPresent_Postfix(Il2CppObject* self, Il2CppObject* noteCutInfo) {
     judgeNoContext(self, noteCutInfo);
+    if (!config.doIntermediateUpdates) {
+        // Set the duration back to the default, which is 0.7 seconds
+        RET_V_UNLESS(il2cpp_utils::SetFieldValue(self, "_duration", 0.7f));
+    }
     auto counter = RET_V_UNLESS(il2cpp_utils::GetPropertyValue(noteCutInfo, "swingRatingCounter").value_or(nullptr));
-    swingRatingCounter_context_t* context = reinterpret_cast<swingRatingCounter_context_t*>(malloc(sizeof(swingRatingCounter_context_t)));
-    context->flyingScoreEffect = self;
-    context->noteCutInfo = noteCutInfo;
-    auto action = il2cpp_utils::MakeAction(il2cpp_utils::FindField(counter, "didFinishEvent"), context, judge);
-    context->actionToRemove = action;
-    RET_V_UNLESS(il2cpp_utils::RunMethod(counter, "add_didFinishEvent", action));
+    swingRatingMap[counter] = {noteCutInfo, self};
+    log(DEBUG, "Complete with InitAndPresent!");
 }
 
 void Notification_Init(Il2CppObject* parent) {
+    log(DEBUG, "Initialized notificationBox, parent: %p", parent);
     notification.notificationBox.fontSize = 5;
     notification.notificationBox.anchoredPosition = {0.0f, -100.0f};
     notification.notificationBox.parentTransform = parent;
@@ -435,7 +437,9 @@ extern "C" void load() {
     log(INFO, "Installing hooks...");
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "InitAndPresent", 6));
-    INSTALL_HOOK_OFFSETLESS(VRUIControllers_VRPointer_Process, il2cpp_utils::FindMethodUnsafe("VRUIControllers", "VRPointer", "Process", 1));
+    INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreSpawner", "HandleFlyingScoreEffectDidFinish", 1));
+    INSTALL_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinishEvent, il2cpp_utils::FindMethodUnsafe("", "BeatmapObjectExecutionRatingsRecorder/CutScoreHandler", "HandleSwingRatingCounterDidFinishEvent", 1));
+    INSTALL_HOOK_OFFSETLESS(VRUIControls_VRPointer_Process, il2cpp_utils::FindMethodUnsafe("VRUIControls", "VRPointer", "Process", 1));
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "DidActivate", 2));
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "HandleMenuButton", 1));
     log(INFO, "Installed hooks!");

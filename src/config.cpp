@@ -89,31 +89,12 @@ void judgment::SetImage(std::string imagePath, int threshold) {
     this->imagePath.emplace(imagePath);
 }
 
-void judgment::SetText(std::string text, std::vector<const float> color, int threshold, bool fade) {
+void judgment::SetText(std::string text, Color color, int threshold, bool fade) {
     if (this->threshold != threshold)
         this->threshold = threshold;
     this->text.emplace(text);
-    std::vector<float> c;
-    for (auto f : color) {
-        c.push_back(f);
-    }
-    this->color.emplace(c);
+    this->color.emplace(color);
     this->fade.emplace(fade);
-}
-
-std::optional<Color> judgment::GetColor() {
-    if (_color) {
-        return _color;
-    }
-    // TODO: Avoid redundant calls when _color is very clearly wrong
-    _color = std::nullopt;
-    if (color) {
-        // Ensure length
-        if (color->size() == COLOR_ARRAY_LENGTH) {
-            _color.emplace((Color){(*color)[0], (*color)[1], (*color)[2], (*color)[3]});
-        }
-    }
-    return _color;
 }
 
 // Returns true on success, false if any segment is invalid (thus the config is invalid)
@@ -185,11 +166,8 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
         if (itr != currentValue.MemberEnd()) {
             auto size = itr->value.GetArray().Size();
             if (size == COLOR_ARRAY_LENGTH) {
-                std::vector<float> c(COLOR_ARRAY_LENGTH);
-                for (int j = 0; j < itr->value.GetArray().Size(); j++) {
-                    const auto f = itr->value[j].GetFloat();
-                    c.push_back(f);
-                }
+                auto arr = itr->value.GetArray();
+                Color c = {arr[0].GetFloat(), arr[1].GetFloat(), arr[2].GetFloat(), arr[3].GetFloat()};
                 toAdd.color.emplace(c);
             } else {
                 toAdd.color = std::nullopt;
@@ -206,7 +184,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
         // If color is not provided, revert to default color.
         if (requires_text(displayMode) && !toAdd.color) {
             log(WARNING, "Could not load color for judgment: %d, using white!", i);
-            toAdd.color.emplace(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f});
+            toAdd.color.emplace((Color){0.0f, 0.0f, 0.0f, 0.0f});
         }
         // If an image is required but not provided AND no fallback text is available, fail
         // This will bring attention to image only displays failing to have images for all judgments
@@ -216,7 +194,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
                 log(INFO, "Will not use an image for this judgment");
                 if (!toAdd.color) {
                     log(INFO, "Using default color!");
-                    toAdd.color.emplace(std::vector<float>{0.0f, 0.0f, 0.0f, 0.0f});
+                    toAdd.color.emplace((Color){0.0f, 0.0f, 0.0f, 0.0f});
                 }
             } else {
                 log(WARNING, "Config could not be loaded! displayMode: %d requires an image, but judgment: %d had none!", displayMode, i);
@@ -249,9 +227,10 @@ void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, 
     }
     if (j.color) {
         rapidjson::Document::ValueType color(rapidjson::kArrayType);
-        for (int i = 0; i < fmin(j.color->size(), COLOR_ARRAY_LENGTH); i++) {
-            color.PushBack((*j.color)[i], allocator);
-        }
+        color.PushBack(j.color->r, allocator);
+        color.PushBack(j.color->g, allocator);
+        color.PushBack(j.color->b, allocator);
+        color.PushBack(j.color->a, allocator);
         v.AddMember("color", color, allocator);
     }
     if (j.fade) {
@@ -354,7 +333,7 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     log(DEBUG, "judgments length: %lu", judgments.size());
     // Add judgments
     for (auto itr = judgments.begin(); itr != judgments.end(); ++itr) {
-        log(DEBUG, "judgment: %i, %s, (%f, %f, %f, %f)", itr->threshold, itr->text->data(), (*itr->color)[0], (*itr->color)[1], (*itr->color)[2], (*itr->color)[3]);
+        log(DEBUG, "judgment: %i, %s", itr->threshold, itr->text->data());
         ConfigHelper::AddJSONJudgment(allocator, arr, *itr);
     }
     log(DEBUG, "Starting segments");

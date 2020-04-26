@@ -42,9 +42,8 @@ class judgment {
         // HSV specific text to display.
         // Supports TMP text and % operators.
         std::optional<std::string> text;
-        // A vector of length COLOR_ARRAY_LENGTH for the color.
-        // If the length is not the same, the color is ignored.
-        std::optional<std::vector<float>> color;
+        // The color to use, if it is valid.
+        std::optional<Color> color;
         // Whether to fade between colors, if possible.
         std::optional<bool> fade;
         // Optional path to an image (ignores text, and fade fields; color is used to tint the image).
@@ -54,12 +53,8 @@ class judgment {
         // Optional volume of the sound to play, default of 1.0 volume
         std::optional<float> soundVolume;
 
-        void SetText(std::string text, std::vector<const float> color, int threshold = 0, bool fade = false);
+        void SetText(std::string text, Color color, int threshold = 0, bool fade = false);
         void SetImage(std::string imagePath, int threshold = 0);
-        std::optional<Color> GetColor();
-    private:
-        // Internal Color
-        std::optional<Color> _color;
 };
 
 class segment {

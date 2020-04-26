@@ -5,12 +5,8 @@
 #include "../extern/beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 #include "notification.h"
 
-typedef struct effect_context {
-    Il2CppObject* actionToRemove;
-} effect_context_t;
-
+// Holds information to be used on BeatmapObjectExecutionRatingsRecorder.HandleSwingRatingCounterDidFinishEvent
 typedef struct swingRatingCounter_context {
-    Il2CppObject* actionToRemove;
     Il2CppObject* noteCutInfo;
     Il2CppObject* flyingScoreEffect;
 } swingRatingCounter_context_t;
@@ -18,8 +14,12 @@ typedef struct swingRatingCounter_context {
 void checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance);
 void setConfigToCurrentSeason();
 void loadConfig();
+
+void effectDidFinish(Il2CppObject* flyingObjectEffect);
+void judge(Il2CppObject* counter);
+
 void HandleSaberSwingRatingCounterChangeEvent(Il2CppObject* self);
-void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos);
+void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos, float& duration);
 void InitAndPresent_Postfix(Il2CppObject* self, Il2CppObject* noteCutInfo);
 void Notification_Init(Il2CppObject* parent);
 bool Notification_Create();
@@ -34,14 +34,26 @@ MAKE_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEve
 
 // FlyingScoreEffect::InitAndPresent(NoteCutInfo, int, float, Vector3, Quaternion, Color)
 MAKE_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, void, Il2CppObject* self, Il2CppObject* noteCutInfo, int multiplier, float duration, Vector3 targetPos, Quaternion rotation, Color color) {
-    InitAndPresent_Prefix(self, targetPos);
+    InitAndPresent_Prefix(self, targetPos, duration);
     FlyingScoreEffect_InitAndPresent(self, noteCutInfo, multiplier, duration, targetPos, rotation, color);
     InitAndPresent_Postfix(self, noteCutInfo);
 }
 
-// VRUIControllers.VRPointer::Process(PointerEventData)
-MAKE_HOOK_OFFSETLESS(VRUIControllers_VRPointer_Process, void, Il2CppObject* self, Il2CppObject* pointerEventData) {
-    VRUIControllers_VRPointer_Process(self, pointerEventData);
+// FlyingScoreSpawner::HandleFlyingScoreEffectDidFinish(FlyingScoreEffect)
+MAKE_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, void, Il2CppObject* self, Il2CppObject* flyingObjectEffect) {
+    FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish(self, flyingObjectEffect);
+    effectDidFinish(flyingObjectEffect);
+}
+
+// BeatmapObjectExecutionRatingsRecorder/CutScoreHandler::HandleSwingRatingCounterDidFinishEvent(SaberSwingRatingCounter)
+MAKE_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinishEvent, void, Il2CppObject* self, Il2CppObject* counter) {
+    CutScoreHandler_HandleSwingRatingCounterDidFinishEvent(self, counter);
+    judge(counter);
+}
+
+// VRUIControls.VRPointer::Process(PointerEventData)
+MAKE_HOOK_OFFSETLESS(VRUIControls_VRPointer_Process, void, Il2CppObject* self, Il2CppObject* pointerEventData) {
+    VRUIControls_VRPointer_Process(self, pointerEventData);
     Notification_Update();
 }
 
