@@ -8,17 +8,18 @@
 #include "../extern/beatsaber-hook/shared/utils/logging.h"
 #include "../extern/beatsaber-hook/shared/utils/utils-functions.h"
 
-std::map<std::string, texture_pair_t> TextureManager::textures;
+std::unordered_map<std::string, texture_pair_t> TextureManager::textures;
 
 void TextureManager::textureLoaded(texture_complete_t* completeWrapper) {
     ASSERT_MSG(completeWrapper, "texture_complete_t is nullptr in TextureManager::textureLoaded!");
-    auto content = il2cpp_utils::RunMethod("UnityEngine.Networking", "DownloadHandlerAudioClip", "GetContent", completeWrapper->webRequest).value_or(nullptr);
-    ASSERT_MSG(content, "Failed to get AudioClip content, or it was null!");
-    log(INFO, "Finalizing load for AudioClip: %s", completeWrapper->path.data());
-    auto val = textures.find(std::string(completeWrapper->path.data()));
+    auto content = il2cpp_utils::RunMethod("UnityEngine.Networking", "DownloadHandlerTexture", "GetContent", completeWrapper->webRequest).value_or(nullptr);
+    ASSERT_MSG(content, "Failed to get texture content, or it was null!");
+    log(INFO, "Finalizing load for texture: %s", completeWrapper->path.data());
+    auto val = textures.find(completeWrapper->path);
     ASSERT_MSG(val != textures.end(), "Could not find completeWrapper path when finalizing textureLoaded!");
-    textures[val->first].loaded = true;
-    textures[val->first].texture = content;
+    log(DEBUG, "Existing item: %s {%c, %p}", completeWrapper->path.data(), val->second.loaded ? 't' : 'f', val->second.texture);
+    textures[completeWrapper->path].loaded = true;
+    textures[completeWrapper->path].texture = content;
     // Free malloc'd structure after
     free(completeWrapper);
 }
@@ -26,15 +27,16 @@ void TextureManager::textureLoaded(texture_complete_t* completeWrapper) {
 void TextureManager::Initialize(std::vector<std::string>& paths) {
     for (auto s : paths) {
         if (!LoadTexture(s)) {
-            log(WARNING, "Could not load audio file: %s skipping it!", s.data());
+            log(WARNING, "Could not load texture file: %s skipping it!", s.data());
         }
     }
 }
 
-std::optional<Il2CppObject*> TextureManager::GetTexture(std::string_view path) {
-    auto found = textures.find(std::string(path.data()));
+std::optional<Il2CppObject*> TextureManager::GetTexture(std::string path) {
+    auto found = textures.find(path);
     if (found == textures.end()) {
         // We didn't find it. Let's attempt to load it so when we try to get it later we get it.
+        log(DEBUG, "Attempting to load texture: %s", path.data());
         RET_NULLOPT_UNLESS(LoadTexture(path));
         return std::nullopt;
     }
@@ -43,16 +45,17 @@ std::optional<Il2CppObject*> TextureManager::GetTexture(std::string_view path) {
         log(INFO, "Waiting for audio clip at: %s to load before returning a valid one.", path.data());
         return std::nullopt;
     }
+    log(DEBUG, "Got texture! Path: %s", path.data());
     return found->second.texture;
 }
 
-bool TextureManager::LoadTexture(std::string_view path) {
+bool TextureManager::LoadTexture(std::string path) {
     log(INFO, "Loading texure: %s", path.data());
     if (!fileexists(path.data())) {
         log(ERROR, "File: %s does not exists!", path.data());
         return false;
     }
-    auto requestPath = il2cpp_utils::createcsstr(std::string("file:///") + path.data());
+    auto requestPath = il2cpp_utils::createcsstr(std::string("file:///") + path);
     auto webRequest = il2cpp_utils::RunMethod("UnityEngine.Networking", "UnityWebRequestTexture", "GetTexture", requestPath).value_or(nullptr);
     RET_F_UNLESS(webRequest);
     // Create completeWrapper
@@ -69,6 +72,6 @@ bool TextureManager::LoadTexture(std::string_view path) {
         return false;
     }
     log(INFO, "Began loading texture!");
-    textures[std::string(path.data())] = {false, nullptr};
+    textures[path] = {false, nullptr};
     return true;
 }

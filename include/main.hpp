@@ -71,5 +71,6 @@ MAKE_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, void, Il2CppObject
 }
 
 // TODO: Add scene transition hooks to clear/ensure destruction of notification
+// TODO: Add hooks on game start to async load the images and audio that would be needed
 
 extern "C" void load();

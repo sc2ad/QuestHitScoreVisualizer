@@ -174,6 +174,7 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
         // Skip
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
         RET_F_UNLESS(best.text);
+        judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     }
 
     // Set text if it is not null
@@ -184,6 +185,7 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
 }
 
 bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
+    log(DEBUG, "Adding image...");
     if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
         RET_F_UNLESS(best.imagePath);
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
@@ -200,26 +202,33 @@ bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int
     Il2CppObject* existing = *RET_F_UNLESS(il2cpp_utils::RunMethod(flyingScoreEffect, "GetComponent", spriteRendererType));
     if (existing) {
         // Already displaying an image, no need to fail
-        return true;
+        log(DEBUG, "found sprite renderer: %p", existing);
+    } else {
+        // SpriteRenderer spriteRender = flyingScoreEffect.gameObject.AddComponent(typeof(SpriteRenderer));
+        auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(flyingScoreEffect, "gameObject").value_or(nullptr));
+        existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", spriteRendererType).value_or(nullptr));
+        log(DEBUG, "Created sprite renderer: %p", existing);
     }
-    // SpriteRenderer spriteRender = flyingScoreEffect.AddComponent(typeof(SpriteRenderer));
-    existing = RET_F_UNLESS(il2cpp_utils::RunMethod(flyingScoreEffect, "AddComponent", spriteRendererType).value_or(nullptr));
     // Get texture
     auto texture = textureManager.GetTexture(*best.imagePath).value_or(nullptr);
     if (texture) {
+        log(DEBUG, "Found texture!");
         auto width = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<int>(texture, "width"));
         auto height = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<int>(texture, "height"));
         auto rect = (Rect){0.0f, 0.0f, (float)width, (float)height};
         auto pivot = (Vector2){0.5f, 0.5f};
-        // Sprite sprite = Sprite.Create(texture, rect, pivot, 1024f, 1u, 0);
-        auto sprite = RET_F_UNLESS(il2cpp_utils::RunMethod("UnityEngine", "Sprite", "Create", texture, rect, pivot, 1024.0f, 1u, 0).value_or(nullptr));
+        // Sprite sprite = Sprite.Create(texture, rect, pivot, 1024f, 1u, 0, Vector4.zero, false);
+        Vector4 zero = (Vector4){0, 0, 0, 0};
+        auto sprite = RET_F_UNLESS(il2cpp_utils::RunMethod("UnityEngine", "Sprite", "Create", texture, rect, pivot, 1024.0f, 1u, 0, zero, false).value_or(nullptr));
         // spriteRenderer.set_sprite(sprite);
         RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "sprite", sprite));
+        log(DEBUG, "Set sprite!");
         if (best.color) {
             // spriteRenderer.set_color(color);
             RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *best.color));
         }
     }
+    log(DEBUG, "Adding image complete!");
     // TODO: Add segment images here
     return true;
 }
@@ -237,11 +246,14 @@ bool addAudio(Il2CppObject* textObj, judgment toPlay) {
     Il2CppObject* existing = *RET_F_UNLESS(il2cpp_utils::RunMethod(textObj, "GetComponent", audioSourceType));
     if (existing) {
         // Already playing a sound, no need to fail
-        return true;
+        log(DEBUG, "Existing AudioSource: %p", existing);
+    } else {
+        auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(textObj, "gameObject").value_or(nullptr));
+        existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", audioSourceType).value_or(nullptr));
+        log(DEBUG, "Created AudioSource: %p", existing);
     }
-    existing = RET_F_UNLESS(il2cpp_utils::RunMethod(textObj, "AddComponent", audioSourceType).value_or(nullptr));
     // Get audio clip
-    auto clip = audioManager.GetAudioClip(toPlay.soundPath->data()).value_or(nullptr);
+    auto clip = audioManager.GetAudioClip(*toPlay.soundPath).value_or(nullptr);
     if (clip) {
         RET_F_UNLESS(il2cpp_utils::RunMethod(existing, "PlayOneShot", clip, toPlay.soundVolume.value_or(1.0f)));
     }

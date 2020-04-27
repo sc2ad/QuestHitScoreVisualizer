@@ -1,12 +1,13 @@
 #pragma once
 #include "asm/types.h"
 #include <map>
+#include <unordered_map>
 #include <string>
 #include <optional>
 #include "../extern/beatsaber-hook/shared/utils/typedefs.h"
 
 typedef struct audio_complete {
-    std::string_view path;
+    std::string path;
     Il2CppObject* webRequest;
 } audio_complete_t;
 
@@ -18,10 +19,10 @@ typedef struct clip_pair {
 class AudioManager {
     public:
         void Initialize(std::vector<std::string>& paths);
-        bool LoadAudioClip(std::string_view path);
-        std::optional<Il2CppObject*> GetAudioClip(std::string_view path);
+        bool LoadAudioClip(std::string path);
+        std::optional<Il2CppObject*> GetAudioClip(std::string path);
     private:
-        static std::map<std::string, clip_pair_t> loadedAudioClips;
-        int getAudioType(std::string_view path);
+        static std::unordered_map<std::string, clip_pair_t> loadedAudioClips;
+        int getAudioType(std::string path);
         static void audioClipLoaded(audio_complete_t* completeWrapper);
 };
