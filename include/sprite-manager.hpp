@@ -6,22 +6,25 @@
 #include <optional>
 #include "../extern/beatsaber-hook/shared/utils/typedefs.h"
 
+class HSVConfig;
+
 typedef struct texture_complete {
     std::string path;
     Il2CppObject* webRequest;
 } texture_complete_t;
 
-typedef struct texture_pair {
+typedef struct sprite_pair {
     bool loaded;
-    Il2CppObject* texture;
-} texture_pair_t;
+    Il2CppObject* sprite;
+} sprite_pair_t;
 
-class TextureManager {
+class SpriteManager {
     public:
-        void Initialize(std::vector<std::string>& paths);
+        void Initialize(HSVConfig config);
+        void Clear();
         bool LoadTexture(std::string path);
-        std::optional<Il2CppObject*> GetTexture(std::string path);
+        std::optional<Il2CppObject*> GetSprite(std::string path);
     private:
-        static std::unordered_map<std::string, texture_pair_t> textures;
+        static std::unordered_map<std::string, sprite_pair_t> sprites;
         static void textureLoaded(texture_complete_t* completeWrapper);
 };

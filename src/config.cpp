@@ -123,15 +123,16 @@ bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_
         }
         // If an image is required but not provided AND no fallback text is available, fail
         // This will bring attention to image only displays failing to have images for all text
-        if (requires_image(displayMode) && !toAdd.imagePath) {
-            if (requires_text(displayMode) && toAdd.text) {
-                log(WARNING, "Attempted to load image from: displayMode: %d, but segment: %d had none!", displayMode, i);
-                log(INFO, "Will not use an image for this segment");
-            } else {
-                log(WARNING, "Config could not be loaded! displayMode: %d requires an image, but segment: %d had none!", displayMode, i);
-                return false;
-            }
-        }
+        // TODO: Segments do not have text yet!
+        // if (requires_image(displayMode) && !toAdd.imagePath) {
+        //     if (requires_text(displayMode) && toAdd.text) {
+        //         log(WARNING, "Attempted to load image from: displayMode: %d, but segment: %d had none!", displayMode, i);
+        //         log(INFO, "Will not use an image for this segment");
+        //     } else {
+        //         log(WARNING, "Config could not be loaded! displayMode: %d requires an image, but segment: %d had none!", displayMode, i);
+        //         return false;
+        //     }
+        // }
         // Redundant failsafe, should never occur
         if (!toAdd.text && !toAdd.imagePath) {
             log(ERROR, "Config could not be loaded! Missing text and image for segment: %d", i);
@@ -333,12 +334,12 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     log(DEBUG, "judgments length: %lu", judgments.size());
     // Add judgments
     for (auto itr = judgments.begin(); itr != judgments.end(); ++itr) {
-        log(DEBUG, "judgment: %i, %s", itr->threshold, itr->text->data());
+        log(DEBUG, "judgment: %i", itr->threshold);
         ConfigHelper::AddJSONJudgment(allocator, arr, *itr);
     }
-    log(DEBUG, "Starting segments");
     config.AddMember("judgments", arr, allocator);
     // Add segments
+    log(DEBUG, "Starting segments");
     ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgments, "beforeCutAngleJudgments");
     ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgments, "accuracyJudgments");
     ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgments, "afterCutAngleJudgments");
@@ -394,6 +395,37 @@ void HSVConfig::SetToDefault() {
 void HSVConfig::SetToSeason(ConfigType_t type) {
     // TODO: Download seasonal config from github
     log(INFO, "Seasons are not yet supported!");
+}
+
+void getSegmentImages(std::vector<std::string>& v, std::vector<segment> segs) {
+    for (auto s : segs) {
+        if (s.imagePath) {
+            v.push_back(*s.imagePath);
+        }
+    }
+}
+
+std::vector<std::string> HSVConfig::GetAllImagePaths() {
+    std::vector<std::string> v;
+    for (auto j : judgments) {
+        if (j.imagePath) {
+            v.push_back(*j.imagePath);
+        }
+    }
+    getSegmentImages(v, beforeCutAngleJudgments);
+    getSegmentImages(v, afterCutAngleJudgments);
+    getSegmentImages(v, accuracyJudgments);
+    return v;
+}
+
+std::vector<std::string> HSVConfig::GetAllSoundPaths() {
+    std::vector<std::string> v;
+    for (auto j : judgments) {
+        if (j.soundPath) {
+            v.push_back(*j.soundPath);
+        }
+    }
+    return v;
 }
 
 // TODO: Revive

@@ -2,7 +2,7 @@
 #include "../include/config.hpp"
 #include "../include/notification.h"
 #include "../include/audio-manager.hpp"
-#include "../include/texture-manager.hpp"
+#include "../include/sprite-manager.hpp"
 #include <ctime>
 #include "../extern/beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 #include <sstream>
@@ -12,7 +12,7 @@
 
 static HSVConfig config;
 static AudioManager audioManager;
-static TextureManager textureManager;
+static SpriteManager spriteManager;
 static NotificationBox notification;
 static bool configValid = true;
 
@@ -129,21 +129,20 @@ bool addColor(Il2CppObject* flyingScoreEffect, int bestIndex, int score) {
 
     if (color) {
         RET_F_UNLESS(il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", *color));
+    } else {
+        // Use default color of white (instead of whatever the previous color was)
+        RET_F_UNLESS(il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
     }
     return true;
 }
 
 bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
+    if (!best.text && !requires_text(config.displayMode)) {
+        // Don't load any customized text if there is no need to
+        // ex: imageOnly, no text provided
+        return true;
+    }
     Il2CppObject* text = RET_F_UNLESS(il2cpp_utils::GetFieldValue(flyingScoreEffect, "_text").value_or(nullptr));
-
-    // Runtime invoke set_richText to true
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "richText", true));
-
-    // Runtime invoke set_enableWordWrapping false
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "enableWordWrapping", false));
-
-    // Runtime invoke set_overflowMode to OverflowModes.Overflow (0)
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "overflowMode", 0));
 
     Il2CppString* judgment_cs = nullptr;
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
@@ -172,10 +171,20 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     }
     else if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
         // Skip
+        return true;
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
         RET_F_UNLESS(best.text);
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     }
+
+    // Runtime invoke set_richText to true
+    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "richText", true));
+
+    // Runtime invoke set_enableWordWrapping false
+    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "enableWordWrapping", false));
+
+    // Runtime invoke set_overflowMode to OverflowModes.Overflow (0)
+    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "overflowMode", 0));
 
     // Set text if it is not null
     RET_F_UNLESS(judgment_cs);
@@ -210,22 +219,18 @@ bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int
         log(DEBUG, "Created sprite renderer: %p", existing);
     }
     // Get texture
-    auto texture = textureManager.GetTexture(*best.imagePath).value_or(nullptr);
-    if (texture) {
-        log(DEBUG, "Found texture!");
-        auto width = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<int>(texture, "width"));
-        auto height = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<int>(texture, "height"));
-        auto rect = (Rect){0.0f, 0.0f, (float)width, (float)height};
-        auto pivot = (Vector2){0.5f, 0.5f};
-        // Sprite sprite = Sprite.Create(texture, rect, pivot, 1024f, 1u, 0, Vector4.zero, false);
-        Vector4 zero = (Vector4){0, 0, 0, 0};
-        auto sprite = RET_F_UNLESS(il2cpp_utils::RunMethod("UnityEngine", "Sprite", "Create", texture, rect, pivot, 1024.0f, 1u, 0, zero, false).value_or(nullptr));
+    auto sprite = spriteManager.GetSprite(*best.imagePath).value_or(nullptr);
+    if (sprite) {
+        log(DEBUG, "Found sprite!");
         // spriteRenderer.set_sprite(sprite);
         RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "sprite", sprite));
         log(DEBUG, "Set sprite!");
         if (best.color) {
             // spriteRenderer.set_color(color);
             RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *best.color));
+        } else {
+            // Use default color instead of last color
+            RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
         }
     }
     log(DEBUG, "Adding image complete!");
@@ -444,6 +449,21 @@ void Notification_Invalid() {
     notification.markInvalid();
 }
 
+void SceneLoaded(Scene scene) {
+    static auto nameMethod = il2cpp_utils::FindMethod("UnityEngine.SceneManagement", "Scene", "get_name");
+    auto name = RET_V_UNLESS(il2cpp_utils::RunMethod<Il2CppString*>(&scene, nameMethod).value_or(nullptr));
+    auto convName = to_utf8(csstrtostr(name));
+    log(INFO, "Loading scene: %s", convName.data());
+    if (convName == "GameCore") {
+        // TODO: Determine why Initialize crashes with segv to address in memcpy
+        log(INFO, "Clearing loaded audio and sprites!");
+        audioManager.Clear();
+        // audioManager.Initialize(config);
+        spriteManager.Clear();
+        // spriteManager.Initialize(config);
+    }
+}
+
 // Install hooks
 extern "C" void load() {
     loadConfig();
@@ -455,5 +475,6 @@ extern "C" void load() {
     INSTALL_HOOK_OFFSETLESS(VRUIControls_VRPointer_Process, il2cpp_utils::FindMethodUnsafe("VRUIControls", "VRPointer", "Process", 1));
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "DidActivate", 2));
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "HandleMenuButton", 1));
+    INSTALL_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, il2cpp_utils::FindMethodUnsafe("UnityEngine.SceneManagement", "SceneManager", "Internal_ActiveSceneChanged", 2));
     log(INFO, "Installed hooks!");
 }

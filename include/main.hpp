@@ -21,6 +21,9 @@ void judge(Il2CppObject* counter);
 void HandleSaberSwingRatingCounterChangeEvent(Il2CppObject* self);
 void InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos, float& duration);
 void InitAndPresent_Postfix(Il2CppObject* self, Il2CppObject* noteCutInfo);
+
+void SceneLoaded(Scene scene);
+
 void Notification_Init(Il2CppObject* parent);
 bool Notification_Create();
 void Notification_Update();
@@ -72,5 +75,11 @@ MAKE_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, void, Il2CppObject
 
 // TODO: Add scene transition hooks to clear/ensure destruction of notification
 // TODO: Add hooks on game start to async load the images and audio that would be needed
+
+// UnityEngine.SceneManagement::SceneManager::Internal_ActiveSceneChanged(Scene, Scene)
+MAKE_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, void, Scene oldScene, Scene newScene) {
+    SceneManager_Internal_ActiveSceneChanged(oldScene, newScene);
+    SceneLoaded(newScene);
+}
 
 extern "C" void load();

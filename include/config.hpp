@@ -130,6 +130,9 @@ class HSVConfig {
         void WriteToConfig(ConfigDocument& config);
         void SetToDefault();
         void SetToSeason(ConfigType_t type);
+
+        std::vector<std::string> GetAllImagePaths();
+        std::vector<std::string> GetAllSoundPaths();
     private:
         void SetToChristmas();
         void SetToEaster();
