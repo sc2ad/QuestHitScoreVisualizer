@@ -1,6 +1,6 @@
 #include <dlfcn.h>
 #include "../extern/beatsaber-hook/shared/utils/logging.hpp"
-#include "../include/libs/modloader/modloader.hpp"
+#include "../extern/beatsaber-hook/include/modloader.hpp"
 #include "../include/main.hpp"
 #include "../include/config.hpp"
 #include "../include/notification.h"
@@ -316,7 +316,7 @@ void checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut
 }
 // Checks season, sets config to correct season
 void setConfigToCurrentSeason() {
-    static std::string configBackupPath = string_format(CONFIG_PATH_FORMAT, Modloader::getApplicationId()) + MOD_ID + "_backup.json";
+    static std::string configBackupPath = string_format(CONFIG_PATH_FORMAT, Modloader::getApplicationId().c_str()) + MOD_ID + "_backup.json";
     if (config.useSeasonalThemes) {
         // Check season
         time_t now = std::time(nullptr);
@@ -337,7 +337,7 @@ void setConfigToCurrentSeason() {
             if (config.type != CONFIG_TYPE_STANDARD) {
                 // Otherwise, set to standard - iff config.restoreAfterSeason is set and there is a viable backup
                 if (config.restoreAfterSeason && fileexists(configBackupPath)) {
-                    getLogger().debug("Restoring config from: %s", configBackupPath);
+                    getLogger().debug("Restoring config from: %s", configBackupPath.c_str());
                     ConfigHelper::RestoreConfig(configBackupPath);
                     HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, getConfig().config));
                     // Delete the old path to ensure we don't load from it again
