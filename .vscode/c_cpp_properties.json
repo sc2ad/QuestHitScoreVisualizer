@@ -3,8 +3,8 @@
         {
             "name": "Quest",
             "defines": [
-                "MOD_ID=\"QuestHitscoreVisualizer\"",
                 "VERSION=\"4.0.0\"",
+                "MOD_ID=\"HitscoreVisualizer\"",
                 "__GNUC__",
                 "__aarch64__"
             ],

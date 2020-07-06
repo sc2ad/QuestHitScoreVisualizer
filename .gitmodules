@@ -2,3 +2,6 @@
 	path = extern/beatsaber-hook
 	url = https://github.com/sc2ad/beatsaber-hook.git
 	branch = modSettings
+[submodule "extern/customui"]
+	path = extern/customui
+	url = git@github.com:sc2ad/BeatSaberQuestCustomUI.git

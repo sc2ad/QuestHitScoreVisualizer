@@ -1,9 +1,9 @@
 #pragma once
+#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
 #include <stdlib.h>
 #include <string.h>
 #include <string_view>
-#include "../extern/beatsaber-hook/shared/utils/logging.h"
-#include "../extern/beatsaber-hook/shared/customui/customui.hpp"
+#include "../extern/customui/shared/customui.hpp"
 #include "utils.hpp"
 #include <unistd.h>
 #include <queue>
@@ -51,11 +51,11 @@ class NotificationBox {
         // The notifications are popped in FIFO order, each with duration at least what is specified, 
         // assuming markInvalid is not called while a message is being displayed.
         // Duration is in seconds
-        void pushNotification(std::string_view msg, uint duration = 5, const char* func = "unknown", const char* file = "unknown", int line = -1);
+        void pushNotification(std::string_view msg, uint32_t duration = 5, const char* func = "unknown", const char* file = "unknown", int line = -1);
 
         #else
 
-        void _pushNotification(std::string_view msg, uint duration, const char* func, const char* file, int line);
+        void _pushNotification(std::string_view msg, uint32_t duration, const char* func, const char* file, int line);
         #define pushNotification(msg, duration = 5) _pushNotification(msg, duration, __PRETTY_FUNCTION__, __FILE__, __LINE__)
 
         #endif
@@ -63,7 +63,7 @@ class NotificationBox {
         typedef struct message {
             std::string msg;
             std::chrono::system_clock::time_point time;
-            uint duration;
+            uint32_t duration;
         } message_t;
 
         bool initialized = false;

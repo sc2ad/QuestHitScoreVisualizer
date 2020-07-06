@@ -10,8 +10,8 @@
         
     ],
     "category": "Gameplay",
-    "gameVersion": "1.6.0",
-    "version": "0.1.0",
+    "gameVersion": "1.10.0",
+    "version": "4.0.0",
     "platform": "Quest",
     "components": [
         {
@@ -22,6 +22,16 @@
             "uninstallAction": {
                 "removeLibraryFile": "libQuestHitscoreVisualizer.so"
             }
+        },
+        {
+            "type": "FileCopyMod",
+            "sourceFileName": "libbeatsaber-hook_2019_2_1f1_0_2_0.so",
+            "targetRootedPathAndFileName": "/sdcard/Android/data/com.beatgames.beatsaber/files/libs/libbeatsaber-hook_2019_1_1f1_0_2_0.so"
+        },
+        {
+            "type": "FileCopyMod",
+            "sourceFileName": "libcustomui_0_1_0.so",
+            "targetRootedPathAndFileName": "/sdcard/Android/data/com.beatgames.beatsaber/files/libs/libcustomui_0_1_0.so"
         }
     ]
 }

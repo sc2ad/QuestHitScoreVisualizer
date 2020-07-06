@@ -1,7 +1,7 @@
 #include "../include/utils.hpp"
 #include "../include/notification.h"
 #include <asm/types.h>
-#include "../extern/beatsaber-hook/shared/customui/customui.hpp"
+#include "../extern/customui/shared/customui.hpp"
 #include <time.h>
 #include <queue>
 #include <chrono>
@@ -64,7 +64,7 @@ bool NotificationBox::create() {
     return notificationBoxValid;
 }
 
-void NotificationBox::pushNotification(std::string_view msg, uint duration, const char* func, const char* file, int line) {
+void NotificationBox::pushNotification(std::string_view msg, uint32_t duration, const char* func, const char* file, int line) {
     message_t m;
     m.time = std::chrono::system_clock::now();
     #ifdef DEBUG_NOTIFICATIONS

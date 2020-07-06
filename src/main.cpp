@@ -1,3 +1,6 @@
+#include <dlfcn.h>
+#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
+#include "../include/libs/modloader/modloader.hpp"
 #include "../include/main.hpp"
 #include "../include/config.hpp"
 #include "../include/notification.h"
@@ -5,10 +8,25 @@
 #include "../include/sprite-manager.hpp"
 #include <ctime>
 #include "../extern/beatsaber-hook/shared/utils/il2cpp-utils.hpp"
+#include "../extern/beatsaber-hook/shared/config/config-utils.hpp"
 #include <sstream>
 #include <strstream>
 
-#define CONFIG_BACKUP_PATH CONFIG_PATH "HitScoreVisualizer_backup.json"
+static ModInfo modInfo;
+
+const ModInfo& getModInfo() {
+    return modInfo;
+}
+
+const Logger& getLogger() {
+    static const Logger& logger(modInfo);
+    return logger;
+}
+
+Configuration& getConfig() {
+    static Configuration overall_config(modInfo);
+    return overall_config;
+}
 
 static HSVConfig config;
 static AudioManager audioManager;
@@ -17,8 +35,8 @@ static NotificationBox notification;
 static bool configValid = true;
 
 #define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
-    log(ERROR, "Config failed to load properly! Pushing notification..."); \
-    log(ERROR, "Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+    getLogger().error("Config failed to load properly! Pushing notification..."); \
+    getLogger().error("Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
     configValid = false; \
     notification.pushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
 }
@@ -34,7 +52,7 @@ std::optional<int> getBestJudgment(std::vector<judgment>& judgments, int compari
             break;
         }
     }
-    log(DEBUG, "bestIndex: %d", i);
+    getLogger().debug("bestIndex: %d", i);
     return i;
 }
 
@@ -55,9 +73,10 @@ std::optional<segment> getBestSegment(std::vector<segment>& segments, int compar
 
 Il2CppString* parseFormattedText(judgment best, int beforeCut, int afterCut, int cutDistance) {
     std::stringstream ststr;
-    log(DEBUG, "%d, %d, %d", beforeCut, afterCut, cutDistance);
+    getLogger().debug("%d, %d, %d", beforeCut, afterCut, cutDistance);
     bool isPercent = false;
     // TODO: Can make this EVEN FASTER by getting a list of indices of where the %'s are ONCE
+    // Tokenize this, cache text locations AOT
     // And then replacing the corresponding indices with them as we iterate
     for (auto itr = best.text->begin(); itr != best.text->end(); ++itr) {
         auto current = *itr;
@@ -110,18 +129,17 @@ Il2CppString* parseFormattedText(judgment best, int beforeCut, int afterCut, int
             ststr.put(current);
         }
     }
-    return il2cpp_utils::createcsstr(ststr.str().data());
+    return il2cpp_utils::createcsstr(ststr.str(), false);
 }
 
 std::optional<Color> fadeBetween(judgment from, judgment to, int score, Color initialColor) {
-    auto reverseLerp = *RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<float>("UnityEngine", "Mathf", "InverseLerp", (float)from.threshold, (float)to.threshold, (float)score));
-    
-    auto fadeToColor = *RET_NULLOPT_UNLESS(to.color);
+    auto reverseLerp = RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<float>("UnityEngine", "Mathf", "InverseLerp", (float)from.threshold, (float)to.threshold, (float)score));
+    auto fadeToColor = RET_NULLOPT_UNLESS(to.color);
     return RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<Color>("UnityEngine", "Color", "Lerp", initialColor, fadeToColor, reverseLerp));
 }
 
 bool addColor(Il2CppObject* flyingScoreEffect, int bestIndex, int score) {
-    log(DEBUG, "Adding color for bestIndex: %d, score: %d", bestIndex, score);
+    getLogger().debug("Adding color for bestIndex: %d, score: %d", bestIndex, score);
     std::optional<Color> color = config.judgments[bestIndex].color;
     if (config.judgments[bestIndex].fade.value_or(false) && bestIndex != 0 && color) {
         color = fadeBetween(config.judgments[bestIndex], config.judgments[bestIndex - 1], score, *color);
@@ -151,12 +169,12 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
         RET_F_UNLESS(best.text);
         // Numeric display ONLY
-        judgment_cs = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
     } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
         RET_F_UNLESS(best.text);
         // Score on top
         // Add newline
-        judgment_cs = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
         // Faster to convert the old text, use c++ strings, convert it back than it is to use C# string.Concat twice (with two created C# strings)
         judgment_cs = il2cpp_utils::createcsstr(to_utf8(csstrtostr(judgment_cs)) + "\n" + *best.text);
     } else if (config.displayMode == DISPLAY_MODE_TEXTONLY) {
@@ -165,7 +183,7 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_TEXTONTOP) {
         // Text on top
-        judgment_cs = *RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
         // Faster to convert the old text, use c++ strings, convert it back then it is to use C# string.Concat (although only marginally)
         judgment_cs = il2cpp_utils::createcsstr(*best.text + "\n" + to_utf8(csstrtostr(judgment_cs)));
     }
@@ -189,12 +207,12 @@ bool addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int 
     // Set text if it is not null
     RET_F_UNLESS(judgment_cs);
     RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "text", judgment_cs));
-    log(DEBUG, "Using text: %s", best.text->data());
+    getLogger().debug("Using text: %s", best.text->data());
     return true;
 }
 
 bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
-    log(DEBUG, "Adding image...");
+    getLogger().debug("Adding image...");
     if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
         RET_F_UNLESS(best.imagePath);
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
@@ -208,23 +226,23 @@ bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int
     }
     static auto spriteRendererType = il2cpp_utils::GetSystemType("UnityEngine", "SpriteRenderer");
     RET_F_UNLESS(spriteRendererType);
-    Il2CppObject* existing = *RET_F_UNLESS(il2cpp_utils::RunMethod(flyingScoreEffect, "GetComponent", spriteRendererType));
+    Il2CppObject* existing = RET_F_UNLESS(il2cpp_utils::RunMethod(flyingScoreEffect, "GetComponent", spriteRendererType));
     if (existing) {
         // Already displaying an image, no need to fail
-        log(DEBUG, "found sprite renderer: %p", existing);
+        getLogger().debug("found sprite renderer: %p", existing);
     } else {
         // SpriteRenderer spriteRender = flyingScoreEffect.gameObject.AddComponent(typeof(SpriteRenderer));
         auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(flyingScoreEffect, "gameObject").value_or(nullptr));
         existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", spriteRendererType).value_or(nullptr));
-        log(DEBUG, "Created sprite renderer: %p", existing);
+        getLogger().debug("Created sprite renderer: %p", existing);
     }
     // Get texture
     auto sprite = spriteManager.GetSprite(*best.imagePath).value_or(nullptr);
     if (sprite) {
-        log(DEBUG, "Found sprite!");
+        getLogger().debug("Found sprite!");
         // spriteRenderer.set_sprite(sprite);
         RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "sprite", sprite));
-        log(DEBUG, "Set sprite!");
+        getLogger().debug("Set sprite!");
         if (best.color) {
             // spriteRenderer.set_color(color);
             RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *best.color));
@@ -233,7 +251,7 @@ bool addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int
             RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
         }
     }
-    log(DEBUG, "Adding image complete!");
+    getLogger().debug("Adding image complete!");
     // TODO: Add segment images here
     return true;
 }
@@ -248,14 +266,14 @@ bool addAudio(Il2CppObject* textObj, judgment toPlay) {
     }
     static auto audioSourceType = il2cpp_utils::GetSystemType("UnityEngine", "AudioSource");
     RET_F_UNLESS(audioSourceType);
-    Il2CppObject* existing = *RET_F_UNLESS(il2cpp_utils::RunMethod(textObj, "GetComponent", audioSourceType));
+    Il2CppObject* existing = RET_F_UNLESS(il2cpp_utils::RunMethod(textObj, "GetComponent", audioSourceType));
     if (existing) {
         // Already playing a sound, no need to fail
-        log(DEBUG, "Existing AudioSource: %p", existing);
+        getLogger().debug("Existing AudioSource: %p", existing);
     } else {
         auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(textObj, "gameObject").value_or(nullptr));
         existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", audioSourceType).value_or(nullptr));
-        log(DEBUG, "Created AudioSource: %p", existing);
+        getLogger().debug("Created AudioSource: %p", existing);
     }
     // Get audio clip
     auto clip = audioManager.GetAudioClip(*toPlay.soundPath).value_or(nullptr);
@@ -266,91 +284,92 @@ bool addAudio(Il2CppObject* textObj, judgment toPlay) {
 }
 
 void checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
-    log(DEBUG, "Checking judgments!");
+    getLogger().debug("Checking judgments!");
     if (!configValid) {
         return;
     }
     auto bestIndex = getBestJudgment(config.judgments, beforeCut + afterCut + cutDistance);
     RET_V_UNLESS(bestIndex);
-    log(DEBUG, "Index: %d", *bestIndex);
+    getLogger().debug("Index: %d", *bestIndex);
     auto best = config.judgments[*bestIndex];
 
-    log(DEBUG, "Adding color");
+    getLogger().debug("Adding color");
     if (!addColor(flyingScoreEffect, *bestIndex, beforeCut + afterCut + cutDistance)) {
-        log(ERROR, "Failed to add color!");
+        getLogger().error("Failed to add color!");
     }
 
-    log(DEBUG, "Adding image");
+    getLogger().debug("Adding image");
     if (!addImage(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
-        log(ERROR, "Failed to add image!");
+        getLogger().error("Failed to add image!");
     }
 
-    log(DEBUG, "Adding text");
+    getLogger().debug("Adding text");
     if (!addText(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
-        log(ERROR, "Failed to add text!");
+        getLogger().error("Failed to add text!");
     }
 
-    log(DEBUG, "Adding sound");
+    getLogger().debug("Adding sound");
     if (!addAudio(flyingScoreEffect, best)) {
-        log(ERROR, "Failed to add audio!");
+        getLogger().error("Failed to add audio!");
     }
-    log(DEBUG, "Complete with judging!");
+    getLogger().debug("Complete with judging!");
 }
 // Checks season, sets config to correct season
 void setConfigToCurrentSeason() {
+    static std::string configBackupPath = string_format(CONFIG_PATH_FORMAT, Modloader::getApplicationId()) + MOD_ID + "_backup.json";
     if (config.useSeasonalThemes) {
         // Check season
         time_t now = std::time(nullptr);
         tm* currentTm = std::localtime(&now);
-        log(DEBUG, "Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
+        getLogger().debug("Current datetime: (%i/%i)", currentTm->tm_mon, currentTm->tm_mday);
         // Christmas is 1 + 11 month, 23 - 25 day
         if (currentTm->tm_mon == 11 && (currentTm->tm_mday >= 23 && currentTm->tm_mday <= 24)) {
             if (config.backupBeforeSeason) {
-                log(DEBUG, "Backing up config before seasonal swap...");
+                getLogger().debug("Backing up config before seasonal swap...");
                 // Before we backup, we must first ensure we have written out the correct info
                 // So we don't have to fail to parse it again in the future
-                config.WriteToConfig(Configuration::config);
-                ConfigHelper::BackupConfig(Configuration::config, CONFIG_BACKUP_PATH);
+                config.WriteToConfig(getConfig().config);
+                ConfigHelper::BackupConfig(getConfig().config, configBackupPath);
             }
-            log(DEBUG, "Setting to Christmas config!");
+            getLogger().debug("Setting to Christmas config!");
             config.SetToSeason(CONFIG_TYPE_CHRISTMAS);
         } else {
             if (config.type != CONFIG_TYPE_STANDARD) {
                 // Otherwise, set to standard - iff config.restoreAfterSeason is set and there is a viable backup
-                if (config.restoreAfterSeason && fileexists(CONFIG_BACKUP_PATH)) {
-                    log(DEBUG, "Restoring config from: %s", CONFIG_BACKUP_PATH);
-                    ConfigHelper::RestoreConfig(CONFIG_BACKUP_PATH);
-                    HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, Configuration::config));
+                if (config.restoreAfterSeason && fileexists(configBackupPath)) {
+                    getLogger().debug("Restoring config from: %s", configBackupPath);
+                    ConfigHelper::RestoreConfig(configBackupPath);
+                    HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, getConfig().config));
                     // Delete the old path to ensure we don't load from it again
-                    deletefile(CONFIG_BACKUP_PATH);
+                    deletefile(configBackupPath);
                 } else if (config.restoreAfterSeason) {
                     // If there isn't a viable backup, but we want to restore, set to default
-                    log(DEBUG, "Setting config to default from type: %i", config.type);
+                    getLogger().debug("Setting config to default from type: %i", config.type);
                     config.SetToDefault();
                 }
             }
         }
-        log(DEBUG, "Writing Config to JSON file!");
-        config.WriteToConfig(Configuration::config);
-        log(DEBUG, "Writing Config JSON to file!");
-        Configuration::Write();
+        getLogger().debug("Writing Config to JSON file!");
+        config.WriteToConfig(getConfig().config);
+        getLogger().debug("Writing Config JSON to file!");
+        getConfig().Write();
     }
 }
 
 void loadConfig() {
-    log(INFO, "Loading Configuration...");
-    Configuration::Load();
-    HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, Configuration::config));
+    getLogger().info("Loading Configuration...");
+    getConfig().Load();
+    HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, getConfig().config));
     if (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS) {
         // Let's just auto fix everyone's configs that are less than or equal to 2.4.0 or are of Christmas type
-        log(DEBUG, "Setting to default because version <= 2.4.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
+        getLogger().debug("Setting to default because version <= 2.4.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
         config.SetToDefault();
-        config.WriteToConfig(Configuration::config);
+        config.WriteToConfig(getConfig().config);
         configValid = true;
     }
-    log(INFO, "Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
+    getLogger().info("Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
     setConfigToCurrentSeason();
-    log(INFO, "Set Configuration to current season! Type: %i", config.type);
+    getLogger().info("Set Configuration to current season! Type: %i", config.type);
 }
 
 static Il2CppObject* currentEffect;
@@ -376,7 +395,7 @@ void judge(Il2CppObject* counter) {
     // Get FlyingScoreEffect and NoteCutInfo from map
     auto itr = swingRatingMap.find(counter);
     if (itr == swingRatingMap.end()) {
-        log(DEBUG, "counter: %p was not in swingRatingMap!", counter);
+        getLogger().debug("counter: %p was not in swingRatingMap!", counter);
         return;
     }
     auto context = itr->second;
@@ -427,11 +446,11 @@ void InitAndPresent_Postfix(Il2CppObject* self, Il2CppObject* noteCutInfo) {
     }
     auto counter = RET_V_UNLESS(il2cpp_utils::GetPropertyValue(noteCutInfo, "swingRatingCounter").value_or(nullptr));
     swingRatingMap[counter] = {noteCutInfo, self};
-    log(DEBUG, "Complete with InitAndPresent!");
+    getLogger().debug("Complete with InitAndPresent!");
 }
 
 void Notification_Init(Il2CppObject* parent) {
-    log(DEBUG, "Initialized notificationBox, parent: %p", parent);
+    getLogger().debug("Initialized notificationBox, parent: %p", parent);
     notification.notificationBox.fontSize = 5;
     notification.notificationBox.anchoredPosition = {0.0f, -100.0f};
     notification.notificationBox.parentTransform = parent;
@@ -453,21 +472,81 @@ void SceneLoaded(Scene scene) {
     static auto nameMethod = il2cpp_utils::FindMethod("UnityEngine.SceneManagement", "Scene", "get_name");
     auto name = RET_V_UNLESS(il2cpp_utils::RunMethod<Il2CppString*>(&scene, nameMethod).value_or(nullptr));
     auto convName = to_utf8(csstrtostr(name));
-    log(INFO, "Loading scene: %s", convName.data());
+    getLogger().info("Loading scene: %s", convName.data());
     if (convName == "GameCore") {
         // TODO: Determine why Initialize crashes with segv to address in memcpy
-        log(INFO, "Clearing loaded audio and sprites!");
+        getLogger().info("Clearing loaded audio and sprites!");
         audioManager.Clear();
-        // audioManager.Initialize(config);
+        audioManager.Initialize(config);
         spriteManager.Clear();
-        // spriteManager.Initialize(config);
+        spriteManager.Initialize(config);
     }
+}
+
+// FlyingScoreEffect::HandleSaberSwingRatingCounterDidChangeEvent(SaberSwingRatingCounter, float)
+MAKE_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, void, Il2CppObject* self, Il2CppObject* saberSwingRatingCounter, float rating) {
+    FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent(self, saberSwingRatingCounter, rating);
+    HandleSaberSwingRatingCounterChangeEvent(self);
+}
+
+// FlyingScoreEffect::InitAndPresent(NoteCutInfo, int, float, Vector3, Quaternion, Color)
+MAKE_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, void, Il2CppObject* self, Il2CppObject* noteCutInfo, int multiplier, float duration, Vector3 targetPos, Quaternion rotation, Color color) {
+    InitAndPresent_Prefix(self, targetPos, duration);
+    FlyingScoreEffect_InitAndPresent(self, noteCutInfo, multiplier, duration, targetPos, rotation, color);
+    InitAndPresent_Postfix(self, noteCutInfo);
+}
+
+// FlyingScoreSpawner::HandleFlyingScoreEffectDidFinish(FlyingScoreEffect)
+MAKE_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, void, Il2CppObject* self, Il2CppObject* flyingObjectEffect) {
+    FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish(self, flyingObjectEffect);
+    effectDidFinish(flyingObjectEffect);
+}
+
+// BeatmapObjectExecutionRatingsRecorder/CutScoreHandler::HandleSwingRatingCounterDidFinishEvent(SaberSwingRatingCounter)
+MAKE_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinishEvent, void, Il2CppObject* self, Il2CppObject* counter) {
+    CutScoreHandler_HandleSwingRatingCounterDidFinishEvent(self, counter);
+    judge(counter);
+}
+
+// VRUIControls.VRPointer::Process(PointerEventData)
+MAKE_HOOK_OFFSETLESS(VRUIControls_VRPointer_Process, void, Il2CppObject* self, Il2CppObject* pointerEventData) {
+    VRUIControls_VRPointer_Process(self, pointerEventData);
+    Notification_Update();
+}
+
+// MainMenuViewController::DidActivate(bool, ViewController.ActivationType)
+MAKE_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, void, Il2CppObject* self, bool firstActivation, int activationType) {
+    MainMenuViewController_DidActivate(self, firstActivation, activationType);
+    Notification_Init(self);
+    Notification_Create();
+}
+
+// MainMenuViewController::HandleMenuButton(MainMenuViewController.MenuButton)
+MAKE_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, void, Il2CppObject* self, int menuButton) {
+    Notification_Invalid();
+    MainMenuViewController_HandleMenuButton(self, menuButton);
+}
+
+// TODO: Add scene transition hooks to clear/ensure destruction of notification
+// TODO: Add hooks on game start to async load the images and audio that would be needed
+
+// UnityEngine.SceneManagement::SceneManager::Internal_ActiveSceneChanged(Scene, Scene)
+MAKE_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, void, Scene oldScene, Scene newScene) {
+    SceneManager_Internal_ActiveSceneChanged(oldScene, newScene);
+    SceneLoaded(newScene);
+}
+
+extern "C" void setup(ModInfo& info) {
+    info.id = MOD_ID;
+    info.version = VERSION;
+    modInfo = info;
+    getLogger().info("Calling setup!");
 }
 
 // Install hooks
 extern "C" void load() {
     loadConfig();
-    log(INFO, "Installing hooks...");
+    getLogger().info("Installing hooks...");
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "InitAndPresent", 6));
     INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreSpawner", "HandleFlyingScoreEffectDidFinish", 1));
@@ -476,5 +555,5 @@ extern "C" void load() {
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "DidActivate", 2));
     INSTALL_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "HandleMenuButton", 1));
     INSTALL_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, il2cpp_utils::FindMethodUnsafe("UnityEngine.SceneManagement", "SceneManager", "Internal_ActiveSceneChanged", 2));
-    log(INFO, "Installed hooks!");
+    getLogger().info("Installed hooks!");
 }

@@ -1,7 +1,7 @@
 #pragma once
-
+#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
 #include "../extern/beatsaber-hook/shared/config/config-utils.hpp"
-#include "../extern/beatsaber-hook/shared/utils/logging.h"
+#include "../extern/beatsaber-hook/shared/utils/typedefs.h"
 
 // Requires text: & 0b1
 // Requires image: & 0b10
