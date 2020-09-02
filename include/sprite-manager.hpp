@@ -20,10 +20,11 @@ typedef struct sprite_pair {
 
 class SpriteManager {
     public:
-        void Initialize(HSVConfig config);
+        void Initialize(const HSVConfig& config);
         void Clear();
         bool LoadTexture(std::string path);
         std::optional<Il2CppObject*> GetSprite(std::string path);
+        std::vector<std::string> spritePaths;
     private:
         static std::unordered_map<std::string, sprite_pair_t> sprites;
         static void textureLoaded(texture_complete_t* completeWrapper);

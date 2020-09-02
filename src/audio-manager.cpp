@@ -35,12 +35,15 @@ void AudioManager::audioClipLoaded(audio_complete_t* completeWrapper) {
     // Call DontDestroyOnLoad
     ASSERT_MSG(il2cpp_utils::RunMethod("UnityEngine", "Object", "DontDestroyOnLoad", content), "Failed to call UnityEngine.Object.DontDestroyOnLoad(content)");
     // Destruct created structure after
-    completeWrapper->~audio_complete_t();
+    delete completeWrapper;
 }
 
 // Should be called at the start of a scene that all the audio clips will be used in
-void AudioManager::Initialize(HSVConfig config) {
-    for (auto s : config.GetAllSoundPaths()) {
+void AudioManager::Initialize(const HSVConfig& config) {
+    if (audioPaths.size() == 0) {
+        config.GetAllSoundPaths().swap(audioPaths);
+    }
+    for (auto s : audioPaths) {
         if (!LoadAudioClip(s)) {
             getLogger().warning("Could not load audio file: %s skipping it!", s.data());
         }

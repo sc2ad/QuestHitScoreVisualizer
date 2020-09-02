@@ -30,11 +30,14 @@ void SpriteManager::textureLoaded(texture_complete_t* completeWrapper) {
     // Call DontDestroyOnLoad
     ASSERT_MSG(il2cpp_utils::RunMethod("UnityEngine", "Object", "DontDestroyOnLoad", sprite), "Failed to call UnityEngine.Object.DontDestroyOnLoad(sprite)");
     // Destruct created structure after
-    completeWrapper->~texture_complete_t();
+    delete completeWrapper;
 }
 
-void SpriteManager::Initialize(HSVConfig config) {
-    for (auto s : config.GetAllImagePaths()) {
+void SpriteManager::Initialize(const HSVConfig& config) {
+    if (spritePaths.size() == 0) {
+        config.GetAllImagePaths().swap(spritePaths);
+    }
+    for (auto s : spritePaths) {
         if (!LoadTexture(s)) {
             getLogger().warning("Could not load texture file: %s skipping it!", s.data());
             continue;

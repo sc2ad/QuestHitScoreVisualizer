@@ -10,8 +10,8 @@
         
     ],
     "category": "Gameplay",
-    "gameVersion": "1.10.0",
-    "version": "4.0.0",
+    "gameVersion": "1.11.1",
+    "version": "4.1.0",
     "platform": "Quest",
     "components": [
         {
@@ -24,14 +24,10 @@
             }
         },
         {
-            "type": "FileCopyMod",
-            "sourceFileName": "libbeatsaber-hook_2019_2_1f1_0_2_1.so",
-            "targetRootedPathAndFileName": "/sdcard/Android/data/com.beatgames.beatsaber/files/libs/libbeatsaber-hook_2019_1_1f1_0_2_0.so"
-        },
-        {
-            "type": "FileCopyMod",
-            "sourceFileName": "libcustomui_0_1_0.so",
-            "targetRootedPathAndFileName": "/sdcard/Android/data/com.beatgames.beatsaber/files/libs/libcustomui_0_1_0.so"
+            "type": "HookModLibrary",
+            "installAction": {
+                "installLibraryFile": "libbeatsaber-hook_0_5_2.so"
+            }
         }
     ]
 }

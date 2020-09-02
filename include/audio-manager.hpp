@@ -20,10 +20,11 @@ typedef struct clip_pair {
 
 class AudioManager {
     public:
-        void Initialize(HSVConfig config);
+        void Initialize(const HSVConfig& config);
         void Clear();
         bool LoadAudioClip(std::string path);
         std::optional<Il2CppObject*> GetAudioClip(std::string path);
+        std::vector<std::string> audioPaths;
     private:
         static std::unordered_map<std::string, clip_pair_t> audioClips;
         int getAudioType(std::string path);

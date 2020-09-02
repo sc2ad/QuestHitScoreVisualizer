@@ -224,11 +224,15 @@ void HSV::loadConfig() {
         config.SetToDefault();
         config.WriteToConfig(getConfig().config);
         configValid = true;
+    } else if (config.VersionGreaterThanEqual(2, 4, 0)) {
+        configValid = true;
     }
     if (configValid) {
         getLogger().info("Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
         setConfigToCurrentSeason();
         getLogger().info("Set Configuration to current season! Type: %i", config.type);
+    } else {
+        getLogger().info("Configuration is invalid! Please ensure the version is >= 2.4.0!");
     }
 }
 

@@ -22,6 +22,8 @@ auto get_##name##Tokens_size() { \
 class TokenizedText {
 public:
     TokenizedText(std::string str) {
+        // Copy, don't move, str.
+        original = str;
         // Parse the string into tokens, converting the string back is easy.
         getLogger().debug("Tokenizing string: %s", str.c_str());
         std::stringstream ststr;
@@ -43,8 +45,6 @@ public:
                 } else if (current == '%') {
                     tokens.emplace_back("%");
                 } else {
-                    getLogger().debug("Adding token for char: %c, index: %u", current, i);
-                    tokens.emplace_back("");
                     // Depending on current, add to a vector of type: current with i
                     switch (current) {
                         case 'b':
@@ -71,8 +71,19 @@ public:
                         case 'p':
                             percentTokens.push_back(i);
                             break;
+                        default:
+                            // In the event of an unsupported char, we just tokenize it without populating any of the vectors.
+                            // This allows us to keep the % in <size=80%>, since > is not a special char
+                            auto str = std::string("%") + current;
+                            tokens.push_back(str);
+                            getLogger().debug("Adding non-token for string: %s, index: %u", str.c_str(), i);
+                            isPercent = false;
+                            i++;
+                            continue;
                     }
                 }
+                getLogger().debug("Adding token for char: %c, index: %u", current, i);
+                tokens.emplace_back("");
                 isPercent = false;
                 i++;
                 continue;
@@ -80,6 +91,7 @@ public:
             if (current == '%' && !isPercent) {
                 getLogger().debug("Adding str: %s as non-token!", ststr.str().c_str());
                 tokens.emplace_back(ststr.str());
+                ststr.str(std::string());
                 isPercent = true;
                 i++;
             } else {
@@ -92,6 +104,13 @@ public:
             tokens.emplace_back(ststr.str());
         }
     }
+
+    // Get the original string from creation of this
+    std::string Raw() {
+        getLogger().debug("Getting raw original from tokenized text: %s", original.c_str());
+        return original;
+    }
+    // Get the token-joined string from creation of this
     std::string Join() {
         getLogger().debug("Joining tokens of size: %u, valid? %c, text: %s", tokens.size(), textValid ? 't' : 'f', text.c_str());
         if (!textValid) {
@@ -114,6 +133,8 @@ public:
     __SET_TOKEN(score)
     __SET_TOKEN(percent)
 
+    // Original text, should only be used for config write out
+    std::string original;
     // All tokens
     std::vector<std::string> tokens;
     private:

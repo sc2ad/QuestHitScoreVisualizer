@@ -103,7 +103,7 @@ void judgment::SetImage(std::string imagePath, int threshold) {
 void judgment::SetText(std::string text, Color color, int threshold, bool fade) {
     if (this->threshold != threshold)
         this->threshold = threshold;
-    this->text.emplace(text);
+    this->tokenizedText.emplace(TokenizedText(text));
     this->color.emplace(color);
     this->fade.emplace(fade);
 }
@@ -164,7 +164,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
     auto size = arr.Size();
     for (int i = 0; i < size; i++) {
         auto& currentValue = arr[i];
-        judgment toAdd;
+        auto& toAdd = out.emplace_back();
         if (auto thresh = getInt(currentValue, "threshold")) {
             toAdd.threshold = *thresh;
         }
@@ -218,7 +218,6 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
             getLogger().warning("Config could not be loaded! Missing text and image for judgment: %d", i);
             return false;
         }
-        out.push_back(toAdd);
     }
     return true;
 }
@@ -235,7 +234,9 @@ void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, 
     rapidjson::Value v(rapidjson::kObjectType);
     v.AddMember("threshold", j.threshold, allocator);
     if (j.tokenizedText) {
-        v.AddMember("text", rapidjson::GenericStringRef<char>(j.tokenizedText->Join().c_str()), allocator);
+        auto text = j.tokenizedText->original.c_str();
+        getLogger().debug("Adding text field: %s", text);
+        v.AddMember("text", rapidjson::GenericStringRef<char>(text), allocator);
     }
     if (j.color) {
         rapidjson::Document::ValueType color(rapidjson::kArrayType);
@@ -408,16 +409,16 @@ void HSVConfig::SetToSeason(ConfigType_t type) {
 void getSegmentImages(std::vector<std::string>& v, std::vector<segment> segs) {
     for (auto s : segs) {
         if (s.imagePath) {
-            v.push_back(*s.imagePath);
+            v.emplace_back(*s.imagePath);
         }
     }
 }
 
-std::vector<std::string> HSVConfig::GetAllImagePaths() {
+std::vector<std::string> HSVConfig::GetAllImagePaths() const {
     std::vector<std::string> v;
     for (auto j : judgments) {
         if (j.imagePath) {
-            v.push_back(*j.imagePath);
+            v.emplace_back(*j.imagePath);
         }
     }
     getSegmentImages(v, beforeCutAngleJudgments);
@@ -426,11 +427,11 @@ std::vector<std::string> HSVConfig::GetAllImagePaths() {
     return v;
 }
 
-std::vector<std::string> HSVConfig::GetAllSoundPaths() {
+std::vector<std::string> HSVConfig::GetAllSoundPaths() const {
     std::vector<std::string> v;
     for (auto j : judgments) {
         if (j.soundPath) {
-            v.push_back(*j.soundPath);
+            v.emplace_back(*j.soundPath);
         }
     }
     return v;
