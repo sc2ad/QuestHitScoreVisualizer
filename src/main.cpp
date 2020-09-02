@@ -1,21 +1,18 @@
-#include <dlfcn.h>
-#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
-#include "../extern/beatsaber-hook/include/modloader.hpp"
-#include "../include/config.hpp"
-#include "../include/notification.h"
-#include "../include/audio-manager.hpp"
-#include "../include/sprite-manager.hpp"
-#include <ctime>
-#include "../extern/beatsaber-hook/shared/utils/il2cpp-utils.hpp"
-#include "../extern/beatsaber-hook/shared/config/config-utils.hpp"
-#include <sstream>
-#include <strstream>
+#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "modloader/shared/modloader.hpp"
+#include "config.hpp"
+#include "audio-manager.hpp"
+#include "sprite-manager.hpp"
+#include "beatsaber-hook/shared/config/config-utils.hpp"
 #include "HSV.hpp"
+#ifdef NOTIFICATION
+#include "notification.h"
+NotificationBox HSV::notification;
+#endif
 
 HSVConfig HSV::config;
 AudioManager HSV::audioManager;
 SpriteManager HSV::spriteManager;
-NotificationBox HSV::notification;
 bool HSV::configValid = false;
 Il2CppObject* HSV::currentEffect;
 std::map<Il2CppObject*, swingRatingCounter_context> HSV::swingRatingMap;

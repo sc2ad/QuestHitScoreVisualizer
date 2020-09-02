@@ -189,9 +189,7 @@ void HSV::checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int aft
 
 Il2CppString* HSV::parseFormattedText(judgment best, int beforeCut, int afterCut, int cutDistance) {
     // best.tokenizedText must be non-optional when this function is called.
-    std::stringstream ststr;
     getLogger().debug("%d, %d, %d", beforeCut, afterCut, cutDistance);
-    bool isPercent = false;
     // TODO: Can make this EVEN FASTER by getting a list of indices of where the %'s are ONCE
     // Tokenize this, cache text locations AOT
     // And then replacing the corresponding indices with them as we iterate

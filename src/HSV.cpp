@@ -2,39 +2,56 @@
 #include "utils.hpp"
 #include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 
-// Handle a config failure within the HSV class
 #ifndef RELEASE_BUILD
+// Handle a config failure within the HSV class
 #define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
     getLogger().error("Config failed to load properly! Pushing notification..."); \
     getLogger().error("Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
     configValid = false; \
-    notification.pushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
+    HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
 }
 #else
+// Handle a config failure within the HSV class
 #define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
     getLogger().error("Config failed to load properly! Pushing notification..."); \
     configValid = false; \
-    notification.pushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
+    HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
 }
 #endif
 
 void HSV::Notification_Init(Il2CppObject* parent) {
+    #ifdef NOTIFICATION
     getLogger().debug("Initialized notificationBox, parent: %p", parent);
     notification.notificationBox.fontSize = 5;
     notification.notificationBox.anchoredPosition = {0.0f, -100.0f};
     notification.notificationBox.parentTransform = parent;
+    #endif
 }
 
 bool HSV::Notification_Create() {
+    #ifdef NOTIFICATION
     return notification.create();
+    #else
+    return false;
+    #endif
 }
 
 void HSV::Notification_Update() {
+    #ifdef NOTIFICATION
     notification.parallelUpdate();
+    #endif
 }
 
 void HSV::Notification_Invalid() {
+    #ifdef NOTIFICATION
     notification.markInvalid();
+    #endif
+}
+
+void HSV::PushNotification(std::string_view str) {
+    #ifdef NOTIFICATION
+    notification.pushNotification(str);
+    #endif
 }
 
 std::optional<int> HSV::getBestJudgment(std::vector<judgment>& judgments, int comparison) {
@@ -51,7 +68,7 @@ std::optional<int> HSV::getBestJudgment(std::vector<judgment>& judgments, int co
     return i;
 }
 
-std::optional<const segment&> HSV::getBestSegment(std::vector<segment>& segments, int comparison) {
+std::optional<const segment> HSV::getBestSegment(std::vector<segment>& segments, int comparison) {
     auto size = segments.size();
     if (size == 0) {
         return std::nullopt;
@@ -115,7 +132,7 @@ void HSV::InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos, float& d
         targetPos.y = config.fixedPosY;
         targetPos.z = config.fixedPosZ;
         auto transform = RET_V_UNLESS(il2cpp_utils::GetPropertyValue(self, "transform").value_or(nullptr));
-        RET_V_UNLESS(il2cpp_utils::SetPropertyValue(self, "position", targetPos));
+        RET_V_UNLESS(il2cpp_utils::SetPropertyValue(transform, "position", targetPos));
 
         if (currentEffect) {
             // Disable the current effect
@@ -208,8 +225,10 @@ void HSV::loadConfig() {
         config.WriteToConfig(getConfig().config);
         configValid = true;
     }
-    getLogger().info("Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
-    setConfigToCurrentSeason();
-    getLogger().info("Set Configuration to current season! Type: %i", config.type);
+    if (configValid) {
+        getLogger().info("Loaded Configuration! Metadata: type: %i, useSeasonalThemes: %c, restoreAfterSeason: %c", config.type, config.useSeasonalThemes ? 't' : 'f', config.restoreAfterSeason ? 't' : 'f');
+        setConfigToCurrentSeason();
+        getLogger().info("Set Configuration to current season! Type: %i", config.type);
+    }
 }
 

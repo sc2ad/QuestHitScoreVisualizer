@@ -1,7 +1,9 @@
+#ifdef NOTIFICATION
+
 #include "../include/utils.hpp"
 #include "../include/notification.h"
 #include <asm/types.h>
-#include "../extern/customui/shared/customui.hpp"
+// #include "../extern/customui/shared/customui.hpp"
 #include <time.h>
 #include <queue>
 #include <chrono>
@@ -122,3 +124,4 @@ void NotificationBox::markInvalid() {
 // Idea: Hook onto VRControllersInputManager.TriggerValue(int node)
 // Or: VRUIControllers.VRInputModule::ProcessMousePress(Il2CppObject* data) which is called any time a button is clicked
 // Or: VRUIControllers.VRPointer::Process() which is in theory called any time the cursor moves
+#endif

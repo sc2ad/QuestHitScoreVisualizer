@@ -1,9 +1,10 @@
 #pragma once
-#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 #include <stdlib.h>
 #include <string.h>
 #include <string_view>
 #include "../extern/customui/shared/customui.hpp"
+#include "beatsaber-hook/shared/utils/typedefs.h"
 #include "utils.hpp"
 #include <unistd.h>
 #include <queue>

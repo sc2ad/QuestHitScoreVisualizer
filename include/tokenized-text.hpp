@@ -5,6 +5,7 @@
 #include <numeric>
 #include <unordered_map>
 #include <sstream>
+#include "utils.hpp"
 
 // Create a setNAME method that reads from the name##Tokens field and sets all tokens listed.
 #define __SET_TOKEN(name) \
@@ -22,6 +23,7 @@ class TokenizedText {
 public:
     TokenizedText(std::string str) {
         // Parse the string into tokens, converting the string back is easy.
+        getLogger().debug("Tokenizing string: %s", str.c_str());
         std::stringstream ststr;
         int i = 0;
         bool isPercent = false;
@@ -41,6 +43,7 @@ public:
                 } else if (current == '%') {
                     tokens.emplace_back("%");
                 } else {
+                    getLogger().debug("Adding token for char: %c, index: %u", current, i);
                     tokens.emplace_back("");
                     // Depending on current, add to a vector of type: current with i
                     switch (current) {
@@ -75,6 +78,7 @@ public:
                 continue;
             }
             if (current == '%' && !isPercent) {
+                getLogger().debug("Adding str: %s as non-token!", ststr.str().c_str());
                 tokens.emplace_back(ststr.str());
                 isPercent = true;
                 i++;
@@ -82,8 +86,14 @@ public:
                 ststr.put(current);
             }
         }
+        // Add final value to tokens as well
+        if (ststr.str().size() != 0) {
+            getLogger().debug("Adding final string: %s", ststr.str().c_str());
+            tokens.emplace_back(ststr.str());
+        }
     }
     std::string Join() {
+        getLogger().debug("Joining tokens of size: %u, valid? %c, text: %s", tokens.size(), textValid ? 't' : 'f', text.c_str());
         if (!textValid) {
             textValid = true;
             text = std::accumulate(tokens.begin(), tokens.end(), std::string{});
