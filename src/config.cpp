@@ -1,9 +1,9 @@
-#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
+#include "beatsaber-hook/shared/utils/logging.hpp"
 #include "../include/utils.hpp"
 #include "../include/config.hpp"
-#include "../extern/beatsaber-hook/shared/config/rapidjson-utils.hpp"
-#include "../extern/beatsaber-hook/rapidjson/include/rapidjson/allocators.h"
-#include "../extern/beatsaber-hook/rapidjson/include/rapidjson/document.h"
+#include "beatsaber-hook/shared/config/rapidjson-utils.hpp"
+#include "beatsaber-hook/shared/rapidjson/include/rapidjson/allocators.h"
+#include "beatsaber-hook/shared/rapidjson/include/rapidjson/document.h"
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -37,6 +37,17 @@ std::optional<float> getFloat(rapidjson::Value& obj, std::string_view fieldName,
 
 std::optional<const char*> getString(rapidjson::Value& obj, std::string_view fieldName, bool required) {
     GET(obj, fieldName, GetString, required);
+}
+
+std::optional<TokenizedText> getTokenizedText(rapidjson::Value& obj, std::string_view fieldName, bool required) {
+    auto itr = obj.FindMember(fieldName.data());
+    if (itr == obj.MemberEnd()) {
+        if (required) {
+            getLogger().warning("Failed to find required field: %s! Could not load config", fieldName.data());
+        }
+        return std::nullopt;
+    }
+    return TokenizedText(std::string(itr->value.GetString()));
 }
 
 std::optional<bool> getBool(rapidjson::Value& obj, std::string_view fieldName, bool required) {
@@ -157,7 +168,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
         if (auto thresh = getInt(currentValue, "threshold")) {
             toAdd.threshold = *thresh;
         }
-        toAdd.text = getString(currentValue, "text");
+        toAdd.tokenizedText = getTokenizedText(currentValue, "text");
         toAdd.imagePath = getString(currentValue, "imagePath");
         toAdd.soundPath = getString(currentValue, "soundPath");
         toAdd.soundVolume = getFloat(currentValue, "soundVolume");
@@ -178,7 +189,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
         }
 
         // If text is required but not provided, fail
-        if (requires_text(displayMode) && !toAdd.text) {
+        if (requires_text(displayMode) && !toAdd.tokenizedText) {
             getLogger().error("Config could not be loaded! displayMode: %d requires text, but judgment: %d had none!", displayMode, i);
             return false;
         }
@@ -190,7 +201,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
         // If an image is required but not provided AND no fallback text is available, fail
         // This will bring attention to image only displays failing to have images for all judgments
         if (requires_image(displayMode) && !toAdd.imagePath) {
-            if (requires_text(displayMode) && toAdd.text) {
+            if (requires_text(displayMode) && toAdd.tokenizedText) {
                 getLogger().warning("Attempted to load image from: displayMode: %d, but judgment: %d had none!", displayMode, i);
                 getLogger().info("Will not use an image for this judgment");
                 if (!toAdd.color) {
@@ -203,7 +214,7 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
             }
         }
         // Redundant failsafe, should never occur
-        if (!toAdd.text && !toAdd.imagePath) {
+        if (!toAdd.tokenizedText && !toAdd.imagePath) {
             getLogger().warning("Config could not be loaded! Missing text and image for judgment: %d", i);
             return false;
         }
@@ -223,8 +234,8 @@ bool HSVConfig::VersionGreaterThanEqual(int major, int minor, int patch) {
 void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, rapidjson::Document::ValueType& arr, judgment& j) {
     rapidjson::Value v(rapidjson::kObjectType);
     v.AddMember("threshold", j.threshold, allocator);
-    if (j.text) {
-        v.AddMember("text", rapidjson::GenericStringRef<char>(j.text->data()), allocator);
+    if (j.tokenizedText) {
+        v.AddMember("text", rapidjson::GenericStringRef<char>(j.tokenizedText->Join().c_str()), allocator);
     }
     if (j.color) {
         rapidjson::Document::ValueType color(rapidjson::kArrayType);

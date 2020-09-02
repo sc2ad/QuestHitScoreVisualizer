@@ -1,7 +1,8 @@
 #pragma once
-#include "../extern/beatsaber-hook/shared/utils/logging.hpp"
-#include "../extern/beatsaber-hook/shared/config/config-utils.hpp"
-#include "../extern/beatsaber-hook/shared/utils/typedefs.h"
+#include "beatsaber-hook/shared/utils/logging.hpp"
+#include "beatsaber-hook/shared/config/config-utils.hpp"
+#include "beatsaber-hook/shared/utils/typedefs.h"
+#include "tokenized-text.hpp"
 
 // Requires text: & 0b1
 // Requires image: & 0b10
@@ -29,6 +30,7 @@ typedef enum ConfigType {
 std::optional<const int> getInt(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
 std::optional<float> getFloat(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
 std::optional<const char*> getString(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
+std::optional<TokenizedText> getTokenizedText(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
 std::optional<bool> getBool(rapidjson::Value& obj, std::string_view fieldName, bool required = false);
 
 const char* convertDisplayMode(DisplayMode displayMode);
@@ -39,9 +41,8 @@ class judgment {
     public:
         // Threshold that the score must be greater than or equal to.
         int threshold;
-        // HSV specific text to display.
-        // Supports TMP text and % operators.
-        std::optional<std::string> text;
+        // Tokenized text, should be used instead of text.
+        std::optional<TokenizedText> tokenizedText;
         // The color to use, if it is valid.
         std::optional<Color> color;
         // Whether to fade between colors, if possible.
@@ -55,6 +56,10 @@ class judgment {
 
         void SetText(std::string text, Color color, int threshold = 0, bool fade = false);
         void SetImage(std::string imagePath, int threshold = 0);
+    private:
+        // HSV specific text to display.
+        // Supports TMP text and % operators.
+        std::optional<std::string> text;
 };
 
 class segment {

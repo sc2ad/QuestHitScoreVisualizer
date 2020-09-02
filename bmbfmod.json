@@ -25,7 +25,7 @@
         },
         {
             "type": "FileCopyMod",
-            "sourceFileName": "libbeatsaber-hook_2019_2_1f1_0_2_0.so",
+            "sourceFileName": "libbeatsaber-hook_2019_2_1f1_0_2_1.so",
             "targetRootedPathAndFileName": "/sdcard/Android/data/com.beatgames.beatsaber/files/libs/libbeatsaber-hook_2019_1_1f1_0_2_0.so"
         },
         {
