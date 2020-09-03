@@ -4,19 +4,27 @@
 
 #ifndef RELEASE_BUILD
 // Handle a config failure within the HSV class
-#define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
-    getLogger().error("Config failed to load properly! Pushing notification..."); \
-    getLogger().error("Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-    configValid = false; \
-    HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
-}
+#define HANDLE_CONFIG_FAILURE(condition) do { \
+    if (!condition) { \
+        getLogger().error("Config failed to load properly! Pushing notification..."); \
+        getLogger().error("Assertion caught in: %s %s.%d", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+        configValid = false; \
+        HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
+    } else { \
+        configValid = true; \
+    } \
+} while(0)
 #else
 // Handle a config failure within the HSV class
-#define HANDLE_CONFIG_FAILURE(condition) if (!condition) { \
-    getLogger().error("Config failed to load properly! Pushing notification..."); \
-    configValid = false; \
-    HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
-}
+#define HANDLE_CONFIG_FAILURE(condition) do { \
+    if (!condition) { \
+        getLogger().error("Config failed to load properly! Pushing notification..."); \
+        configValid = false; \
+        HSV::PushNotification("Config failed to load properly! Please ensure your JSON was configured correctly!"); \
+    } else { \
+        configValid = true; \
+    } \
+} while(0)
 #endif
 
 void HSV::Notification_Init(Il2CppObject* parent) {
@@ -218,13 +226,11 @@ void HSV::loadConfig() {
     getLogger().info("Loading Configuration...");
     getConfig().Load();
     HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, getConfig().config));
-    if (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS) {
+    if (configValid && (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS)) {
         // Let's just auto fix everyone's configs that are less than or equal to 2.4.0 or are of Christmas type
         getLogger().debug("Setting to default because version <= 2.4.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
         config.SetToDefault();
         config.WriteToConfig(getConfig().config);
-        configValid = true;
-    } else if (config.VersionGreaterThanEqual(2, 4, 0)) {
         configValid = true;
     }
     if (configValid) {
@@ -232,7 +238,6 @@ void HSV::loadConfig() {
         setConfigToCurrentSeason();
         getLogger().info("Set Configuration to current season! Type: %i", config.type);
     } else {
-        getLogger().info("Configuration is invalid! Please ensure the version is >= 2.4.0!");
+        getLogger().info("Configuration is invalid! Please ensure the version is >= 2.4.0 and the config is the correct format!");
     }
 }
-

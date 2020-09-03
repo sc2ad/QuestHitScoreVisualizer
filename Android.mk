@@ -22,34 +22,35 @@ rwildcard=$(wildcard $1$2) $(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2))
 # Build the modloader shared library
 include $(CLEAR_VARS)
 LOCAL_MODULE	        := modloader
-LOCAL_SRC_FILES         := ./extern/beatsaber-hook/include/libs/libmodloader.so
-LOCAL_EXPORT_C_INCLUDES := ./extern/beatsaber-hook/include/
+LOCAL_SRC_FILES         := ./extern/libmodloader.so
+LOCAL_EXPORT_C_INCLUDES := ./extern/modloader/shared
 include $(PREBUILT_SHARED_LIBRARY)
 
 # Build the beatsaber-hook shared library, SPECIFICALLY VERSIONED!
 include $(CLEAR_VARS)
 LOCAL_MODULE	        := bs-hook
-LOCAL_SRC_FILES         := ./include/libs/libbeatsaber-hook_2019_2_1f1_0_2_1.so
+LOCAL_SRC_FILES         := ./extern/debug_libbeatsaber-hook_0_5_2.so
 LOCAL_EXPORT_C_INCLUDES := ./extern/beatsaber-hook/shared/
+LOCAL_CPP_FEATURES += rtti
+LOCAL_EXPORT_C_FLAGS := rtti
 include $(PREBUILT_SHARED_LIBRARY)
 
 # Build the customui shared library
-include $(CLEAR_VARS)
-LOCAL_MODULE	        := customui
-LOCAL_SRC_FILES         := ./include/libs/libcustomui_0_1_0.so
-LOCAL_EXPORT_C_INCLUDES := ./extern/customui/shared/
-include $(PREBUILT_SHARED_LIBRARY)
+# include $(CLEAR_VARS)
+# LOCAL_MODULE	        := customui
+# LOCAL_SRC_FILES         := ./include/libs/libcustomui_0_1_0.so
+# LOCAL_EXPORT_C_INCLUDES := ./extern/customui/shared/
+# include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 # Include the two libraries
 LOCAL_SHARED_LIBRARIES += modloader
 LOCAL_SHARED_LIBRARIES += bs-hook
-LOCAL_SHARED_LIBRARIES += customui
 LOCAL_LDLIBS     := -llog
 LOCAL_CFLAGS     := -I'c:/Program Files/Unity/Editor/Data/il2cpp/libil2cpp'
-LOCAL_CFLAGS     += -D'MOD_ID="QuestHitscoreVisualizer"' -D'VERSION="4.0.0"'
+LOCAL_CFLAGS     += -D'MOD_ID="QuestHitscoreVisualizer"' -D'VERSION="4.1.1"' -isystem"./extern" -isystem"./include"
 LOCAL_MODULE     := QuestHitscoreVisualizer
-LOCAL_CPPFLAGS   := -std=c++2a
+LOCAL_CPPFLAGS   := -std=c++2a -Wall -Werror -Wno-unused-function
 LOCAL_C_INCLUDES := ./include ./src
 LOCAL_SRC_FILES  += $(call rwildcard,src/,*.cpp)
 LOCAL_SRC_FILES  += $(call rwildcard,extern/beatsaber-hook/src/inline-hook,*.cpp)

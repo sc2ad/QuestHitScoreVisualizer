@@ -56,10 +56,10 @@ class judgment {
 
         void SetText(std::string text, Color color, int threshold = 0, bool fade = false);
         void SetImage(std::string imagePath, int threshold = 0);
-    private:
-        // HSV specific text to display.
-        // Supports TMP text and % operators.
-        std::optional<std::string> text;
+    // private:
+    //     // HSV specific text to display.
+    //     // Supports TMP text and % operators.
+    //     std::optional<std::string> text;
 };
 
 class segment {
@@ -136,8 +136,8 @@ class HSVConfig {
         void SetToDefault();
         void SetToSeason(ConfigType_t type);
 
-        std::vector<std::string> GetAllImagePaths();
-        std::vector<std::string> GetAllSoundPaths();
+        std::vector<std::string> GetAllImagePaths() const;
+        std::vector<std::string> GetAllSoundPaths() const;
     private:
         void SetToChristmas();
         void SetToEaster();
