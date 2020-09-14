@@ -115,6 +115,8 @@ class HSVConfig {
         float fixedPosZ;
         // True: Will perform intermediate updates to ensure a correct value at the cost of performance
         bool doIntermediateUpdates;
+        // False: Will not show the initial score before showing the HSV corrected score
+        bool showInitialScore;
 
         std::vector<judgment> judgments;
         std::vector<segment> beforeCutAngleJudgments;

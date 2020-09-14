@@ -122,6 +122,11 @@ void HSV::judge(Il2CppObject* counter) {
     if (context.noteCutInfo) {
         RET_V_UNLESS(il2cpp_utils::RunMethod("", "ScoreModel", "RawScoreWithoutMultiplier", context.noteCutInfo, beforeCut, afterCut, cutDistance));
         if (context.flyingScoreEffect) {
+            if (!config.showInitialScore) {
+                // We need to explicitly re-enable the indicator (text is already properly set)
+                auto* indicator = RET_V_UNLESS(il2cpp_utils::GetFieldValue(context.flyingScoreEffect, "_maxCutDistanceScoreIndicator"));
+                RET_V_UNLESS(il2cpp_utils::SetPropertyValue(indicator, "enabled", true));
+            }
             checkJudgments(context.flyingScoreEffect, beforeCut, afterCut, cutDistance);
         }
     }
@@ -152,13 +157,28 @@ void HSV::InitAndPresent_Prefix(Il2CppObject* self, Vector3& targetPos, float& d
         // Duration being set to 0 would be wrong, since we would destroy before doing anything
         duration = 0.01f;
     }
+    if (!config.showInitialScore) {
+        duration = 0;
+    }
 }
 
 void HSV::InitAndPresent_Postfix(Il2CppObject* self, Il2CppObject* noteCutInfo) {
-    judgeNoContext(self, noteCutInfo);
-    if (!config.doIntermediateUpdates) {
+    if (!config.doIntermediateUpdates || !config.showInitialScore) {
         // Set the duration back to the default, which is 0.7 seconds
         RET_V_UNLESS(il2cpp_utils::SetFieldValue(self, "_duration", 0.7f));
+    }
+    if (!config.showInitialScore) {
+        // If we plan on hiding the original score until we have computed the end result, we simply set the duration
+        // and set the text + underline to nothing.
+        // We reenable these based off of our final score instead.
+        auto* textObj = RET_V_UNLESS(il2cpp_utils::GetFieldValue(self, "_text"));
+        static auto* emptyStr = il2cpp_utils::createcsstr("", il2cpp_utils::StringType::Permanent);
+        RET_V_UNLESS(il2cpp_utils::SetPropertyValue(textObj, "text", emptyStr));
+        auto* indicator = RET_V_UNLESS(il2cpp_utils::GetFieldValue(self, "_maxCutDistanceScoreIndicator"));
+        RET_V_UNLESS(il2cpp_utils::SetPropertyValue(indicator, "enabled", false));
+    }
+    if (config.showInitialScore) {
+        judgeNoContext(self, noteCutInfo);
     }
     auto counter = RET_V_UNLESS(il2cpp_utils::GetPropertyValue(noteCutInfo, "swingRatingCounter").value_or(nullptr));
     swingRatingMap[counter] = {noteCutInfo, self};
@@ -226,11 +246,20 @@ void HSV::loadConfig() {
     getLogger().info("Loading Configuration...");
     getConfig().Load();
     HANDLE_CONFIG_FAILURE(ConfigHelper::LoadConfig(config, getConfig().config));
-    if (configValid && (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS)) {
+    if (!configValid && (config.VersionLessThanEqual(2, 4, 0) || config.type == CONFIG_TYPE_CHRISTMAS)) {
         // Let's just auto fix everyone's configs that are less than or equal to 2.4.0 or are of Christmas type
+        // Even if they are invalid! This allows us to actually make the default config.
         getLogger().debug("Setting to default because version <= 2.4.0! Actual: %i.%i.%i", config.majorVersion, config.minorVersion, config.patchVersion);
         config.SetToDefault();
         config.WriteToConfig(getConfig().config);
+        getConfig().Write();
+        configValid = true;
+    }
+    if (!configValid && config.isDefaultConfig) {
+        getLogger().debug("Setting to default because config failed to load, even though it was default config!");
+        config.SetToDefault();
+        config.WriteToConfig(getConfig().config);
+        getConfig().Write();
         configValid = true;
     }
     if (configValid) {

@@ -298,6 +298,9 @@ bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
         con.SetToDefault();
         return true;
     }
+    // Default to true.
+    // This allows us to forcibly regenerate the config if it doesn't load properly and doesn't have this property.
+    con.isDefaultConfig = getBool(config, "isDefaultConfig").value_or(true);
     con.majorVersion = RET_F_UNLESS(getInt(config, "majorVersion", true));
     con.minorVersion = RET_F_UNLESS(getInt(config, "minorVersion", true));
     con.patchVersion = RET_F_UNLESS(getInt(config, "patchVersion", true));
@@ -325,7 +328,7 @@ bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
     // Default to true
     con.doIntermediateUpdates = getBool(config, "doIntermediateUpdates").value_or(true);
     // Default to false
-    con.isDefaultConfig = getBool(config, "isDefaultConfig").value_or(false);
+    con.showInitialScore = getBool(config, "showInitialScore").value_or(false);
     return true;
 }
 
@@ -364,6 +367,7 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     config.AddMember("fixedPosY", fixedPosY, allocator);
     config.AddMember("fixedPosZ", fixedPosZ, allocator);
     config.AddMember("doIntermediateUpdates", doIntermediateUpdates, allocator);
+    config.AddMember("showInitialScore", showInitialScore, allocator);
     config.AddMember("isDefaultConfig", isDefaultConfig, allocator);
     getLogger().debug("Complete!");
 }
@@ -394,6 +398,7 @@ void HSVConfig::SetToDefault() {
     fixedPosY = 0;
     fixedPosZ = 0;
     doIntermediateUpdates = true;
+    showInitialScore = false;
     type = CONFIG_TYPE_STANDARD;
     useSeasonalThemes = true;
     backupBeforeSeason = true;

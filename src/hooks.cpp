@@ -59,6 +59,9 @@ MAKE_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, void, Scene oldSc
 
 // Install hooks
 extern "C" void load() {
+    #ifdef SILENT
+    Logger::disable();
+    #endif
     HSV::loadConfig();
     getLogger().info("Installing hooks...");
     INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));

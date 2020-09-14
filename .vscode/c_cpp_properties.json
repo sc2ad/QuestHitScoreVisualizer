@@ -3,7 +3,7 @@
         {
             "name": "Quest",
             "defines": [
-                "VERSION=\"4.0.0\"",
+                "VERSION=\"4.1.3\"",
                 "MOD_ID=\"HitscoreVisualizer\"",
                 "__GNUC__",
                 "__aarch64__"
@@ -11,7 +11,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/extern",
-                "c:/android-ndk-r20b/**",
+                "c:/android-ndk-r21d/**",
                 "${workspaceFolder}/include"
             ],
             "cStandard": "c11",
