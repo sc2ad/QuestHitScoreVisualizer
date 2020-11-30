@@ -42,7 +42,6 @@ bool HSV::addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut,
         RET_F_UNLESS(logger, best.tokenizedText);
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
-        RET_F_UNLESS(logger, best.tokenizedText);
         // Numeric display ONLY
         judgment_cs = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
     } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
@@ -88,7 +87,6 @@ bool HSV::addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut,
 
 bool HSV::addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
     static auto logger = getLogger().WithContext("HSV").WithContext("addImage");
-    logger.info("Adding image...");
     if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
         RET_F_UNLESS(logger, best.imagePath);
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
