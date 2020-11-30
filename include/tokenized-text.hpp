@@ -22,10 +22,11 @@ auto get_##name##Tokens_size() { \
 class TokenizedText {
 public:
     TokenizedText(std::string str) {
+        static auto logger = getLogger().WithContext("TokenizedText");
         // Copy, don't move, str.
         original = str;
         // Parse the string into tokens, converting the string back is easy.
-        getLogger().debug("Tokenizing string: %s", str.c_str());
+        logger.debug("Tokenizing string: %s", str.c_str());
         std::stringstream ststr;
         int i = 0;
         bool isPercent = false;
@@ -76,20 +77,20 @@ public:
                             // This allows us to keep the % in <size=80%>, since > is not a special char
                             auto str = std::string("%") + current;
                             tokens.push_back(str);
-                            getLogger().debug("Adding non-token for string: %s, index: %u", str.c_str(), i);
+                            logger.debug("Adding non-token for string: %s, index: %u", str.c_str(), i);
                             isPercent = false;
                             i++;
                             continue;
                     }
                 }
-                getLogger().debug("Adding token for char: %c, index: %u", current, i);
+                logger.debug("Adding token for char: %c, index: %u", current, i);
                 tokens.emplace_back("");
                 isPercent = false;
                 i++;
                 continue;
             }
             if (current == '%' && !isPercent) {
-                getLogger().debug("Adding str: %s as non-token!", ststr.str().c_str());
+                logger.debug("Adding str: %s as non-token!", ststr.str().c_str());
                 tokens.emplace_back(ststr.str());
                 ststr.str(std::string());
                 isPercent = true;
@@ -100,23 +101,25 @@ public:
         }
         // Add final value to tokens as well
         if (ststr.str().size() != 0) {
-            getLogger().debug("Adding final string: %s", ststr.str().c_str());
+            logger.debug("Adding final string: %s", ststr.str().c_str());
             tokens.emplace_back(ststr.str());
         }
     }
 
     // Get the original string from creation of this
     std::string Raw() {
-        getLogger().debug("Getting raw original from tokenized text: %s", original.c_str());
+        static auto logger = getLogger().WithContext("TokenizedText").WithContext("Raw");
+        logger.debug("Getting raw original from tokenized text: %s", original.c_str());
         return original;
     }
     // Get the token-joined string from creation of this
     std::string Join() {
-        getLogger().debug("Joining tokens of size: %u, valid? %c, text: %s", tokens.size(), textValid ? 't' : 'f', text.c_str());
+        static auto logger = getLogger().WithContext("TokenizedText").WithContext("Join");
         if (!textValid) {
             textValid = true;
             text = std::accumulate(tokens.begin(), tokens.end(), std::string{});
         }
+        logger.debug("Joining tokens of size: %u, valid? %c, result text: %s", tokens.size(), textValid ? 't' : 'f', text.c_str());
         return text;
     }
 

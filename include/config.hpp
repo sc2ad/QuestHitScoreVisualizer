@@ -72,13 +72,11 @@ class segment {
         std::optional<std::string> imagePath;
 
         void SetText(const char* text, int threshold = 0) {
-            if (this->threshold != threshold)
-                this->threshold = threshold;
+            this->threshold = threshold;
             this->text.emplace(text);
         }
         void SetImage(std::string imagePath, int threshold = 0) {
-            if (this->threshold != threshold)
-                this->threshold = threshold;
+            this->threshold = threshold;
             this->imagePath.emplace(imagePath);
         }
 };

@@ -23,9 +23,9 @@ MAKE_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, void, 
     HSV::effectDidFinish(flyingObjectEffect);
 }
 
-// BeatmapObjectExecutionRatingsRecorder/CutScoreHandler::HandleSwingRatingCounterDidFinishEvent(SaberSwingRatingCounter)
-MAKE_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinishEvent, void, Il2CppObject* self, Il2CppObject* counter) {
-    CutScoreHandler_HandleSwingRatingCounterDidFinishEvent(self, counter);
+// BeatmapObjectExecutionRatingsRecorder/CutScoreHandler::HandleSwingRatingCounterDidFinish(SaberSwingRatingCounter)
+MAKE_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinish, void, Il2CppObject* self, Il2CppObject* counter) {
+    CutScoreHandler_HandleSwingRatingCounterDidFinish(self, counter);
     HSV::judge(counter);
 }
 
@@ -60,17 +60,18 @@ MAKE_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, void, Scene oldSc
 // Install hooks
 extern "C" void load() {
     #ifdef SILENT
-    Logger::disable();
+    getLogger().disable();
     #endif
     HSV::loadConfig();
-    getLogger().info("Installing hooks...");
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreEffect_InitAndPresent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "InitAndPresent", 6));
-    INSTALL_HOOK_OFFSETLESS(FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreSpawner", "HandleFlyingScoreEffectDidFinish", 1));
-    INSTALL_HOOK_OFFSETLESS(CutScoreHandler_HandleSwingRatingCounterDidFinishEvent, il2cpp_utils::FindMethodUnsafe("", "BeatmapObjectExecutionRatingsRecorder/CutScoreHandler", "HandleSwingRatingCounterDidFinish", 1));
-    INSTALL_HOOK_OFFSETLESS(VRUIControls_VRPointer_Process, il2cpp_utils::FindMethodUnsafe("VRUIControls", "VRPointer", "Process", 1));
-    INSTALL_HOOK_OFFSETLESS(MainMenuViewController_DidActivate, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "DidActivate", 3));
-    INSTALL_HOOK_OFFSETLESS(MainMenuViewController_HandleMenuButton, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "HandleMenuButton", 1));
-    INSTALL_HOOK_OFFSETLESS(SceneManager_Internal_ActiveSceneChanged, il2cpp_utils::FindMethodUnsafe("UnityEngine.SceneManagement", "SceneManager", "Internal_ActiveSceneChanged", 2));
-    getLogger().info("Installed hooks!");
+    static auto logger = getLogger().WithContext("load");
+    logger.info("Installing hooks...");
+    INSTALL_HOOK_OFFSETLESS(logger, FlyingScoreEffect_HandleSaberSwingRatingCounterDidChangeEvent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "HandleSaberSwingRatingCounterDidChangeEvent", 2));
+    INSTALL_HOOK_OFFSETLESS(logger, FlyingScoreEffect_InitAndPresent, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreEffect", "InitAndPresent", 6));
+    INSTALL_HOOK_OFFSETLESS(logger, FlyingScoreSpawner_HandleFlyingScoreEffectDidFinish, il2cpp_utils::FindMethodUnsafe("", "FlyingScoreSpawner", "HandleFlyingScoreEffectDidFinish", 1));
+    INSTALL_HOOK_OFFSETLESS(logger, CutScoreHandler_HandleSwingRatingCounterDidFinish, il2cpp_utils::FindMethodUnsafe("", "BeatmapObjectExecutionRatingsRecorder/CutScoreHandler", "HandleSwingRatingCounterDidFinish", 1));
+    INSTALL_HOOK_OFFSETLESS(logger, VRUIControls_VRPointer_Process, il2cpp_utils::FindMethodUnsafe("VRUIControls", "VRPointer", "Process", 1));
+    INSTALL_HOOK_OFFSETLESS(logger, MainMenuViewController_DidActivate, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "DidActivate", 3));
+    INSTALL_HOOK_OFFSETLESS(logger, MainMenuViewController_HandleMenuButton, il2cpp_utils::FindMethodUnsafe("", "MainMenuViewController", "HandleMenuButton", 1));
+    INSTALL_HOOK_OFFSETLESS(logger, SceneManager_Internal_ActiveSceneChanged, il2cpp_utils::FindMethodUnsafe("UnityEngine.SceneManagement", "SceneManager", "Internal_ActiveSceneChanged", 2));
+    logger.info("Installed hooks!");
 }

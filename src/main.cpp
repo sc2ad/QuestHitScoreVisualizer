@@ -22,8 +22,8 @@ const ModInfo& getModInfo() {
     return modInfo;
 }
 
-const Logger& getLogger() {
-    static const Logger& logger(modInfo);
+Logger& getLogger() {
+    static Logger logger(modInfo, LoggerOptions(false, true));
     return logger;
 }
 

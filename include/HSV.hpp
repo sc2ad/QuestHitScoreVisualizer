@@ -21,7 +21,7 @@ class HSV {
     static HSVConfig config;
     static AudioManager audioManager;
     static SpriteManager spriteManager;
-    #ifdef NOTIFCATION
+    #ifdef NOTIFICATION
     static NotificationBox notification;
     #endif
     static bool configValid;

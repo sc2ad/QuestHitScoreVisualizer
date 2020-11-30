@@ -5,23 +5,25 @@
 #include "beatsaber-hook/shared/utils/il2cpp-utils.hpp"
 
 std::optional<Color> HSV::fadeBetween(judgment from, judgment to, int score, Color initialColor) {
-    auto reverseLerp = RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<float>("UnityEngine", "Mathf", "InverseLerp", (float)from.threshold, (float)to.threshold, (float)score));
-    auto fadeToColor = RET_NULLOPT_UNLESS(to.color);
-    return RET_NULLOPT_UNLESS(il2cpp_utils::RunMethod<Color>("UnityEngine", "Color", "Lerp", initialColor, fadeToColor, reverseLerp));
+    static auto logger = getLogger().WithContext("HSV").WithContext("fadeBetween");
+    auto reverseLerp = RET_NULLOPT_UNLESS(logger, il2cpp_utils::RunMethodUnsafe<float>("UnityEngine", "Mathf", "InverseLerp", (float)from.threshold, (float)to.threshold, (float)score));
+    auto fadeToColor = RET_NULLOPT_UNLESS(logger, to.color);
+    return RET_NULLOPT_UNLESS(logger, il2cpp_utils::RunMethodUnsafe<Color>("UnityEngine", "Color", "Lerp", initialColor, fadeToColor, reverseLerp));
 }
 
 bool HSV::addColor(Il2CppObject* flyingScoreEffect, int bestIndex, int score) {
-    getLogger().debug("Adding color for bestIndex: %d, score: %d", bestIndex, score);
+    static auto logger = getLogger().WithContext("HSV").WithContext("addColor");
+    logger.debug("Adding color for bestIndex: %d, score: %d", bestIndex, score);
     std::optional<Color> color = config.judgments[bestIndex].color;
     if (config.judgments[bestIndex].fade.value_or(false) && bestIndex != 0 && color) {
         color = fadeBetween(config.judgments[bestIndex], config.judgments[bestIndex - 1], score, *color);
     }
 
     if (color) {
-        RET_F_UNLESS(il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", *color));
+        RET_F_UNLESS(logger, il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", *color));
     } else {
         // Use default color of white (instead of whatever the previous color was)
-        RET_F_UNLESS(il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
+        RET_F_UNLESS(logger, il2cpp_utils::SetFieldValue(flyingScoreEffect, "_color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
     }
     return true;
 }
@@ -32,31 +34,32 @@ bool HSV::addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut,
         // ex: imageOnly, no text provided
         return true;
     }
-    Il2CppObject* text = RET_F_UNLESS(il2cpp_utils::GetFieldValue(flyingScoreEffect, "_text").value_or(nullptr));
+    static auto logger = getLogger().WithContext("HSV").WithContext("addText");
+    Il2CppObject* text = RET_F_UNLESS(logger, il2cpp_utils::GetFieldValue(flyingScoreEffect, "_text").value_or(nullptr));
 
     Il2CppString* judgment_cs = nullptr;
     if (config.displayMode == DISPLAY_MODE_FORMAT) {
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_NUMERIC) {
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         // Numeric display ONLY
-        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
     } else if (config.displayMode == DISPLAY_MODE_SCOREONTOP) {
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         // Score on top
         // Add newline
-        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
         // Faster to convert the old text, use c++ strings, convert it back than it is to use C# string.Concat twice (with two created C# strings)
         judgment_cs = il2cpp_utils::createcsstr(to_utf8(csstrtostr(judgment_cs)) + "\n" + best.tokenizedText->Join());
     } else if (config.displayMode == DISPLAY_MODE_TEXTONLY) {
         // Will not display images, use formatted display
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     } else if (config.displayMode == DISPLAY_MODE_TEXTONTOP) {
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         // Text on top
-        judgment_cs = RET_F_UNLESS(il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
+        judgment_cs = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppString*>(text, "text"));
         // Faster to convert the old text, use c++ strings, convert it back then it is to use C# string.Concat (although only marginally)
         judgment_cs = il2cpp_utils::createcsstr(best.tokenizedText->Join() + "\n" + to_utf8(csstrtostr(judgment_cs)));
     }
@@ -64,29 +67,30 @@ bool HSV::addText(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut,
         // Skip
         return true;
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
-        RET_F_UNLESS(best.tokenizedText);
+        RET_F_UNLESS(logger, best.tokenizedText);
         judgment_cs = parseFormattedText(best, beforeCut, afterCut, cutDistance);
     }
 
     // Runtime invoke set_richText to true
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "richText", true));
+    RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue(text, "richText", true));
 
     // Runtime invoke set_enableWordWrapping false
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "enableWordWrapping", false));
+    RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue(text, "enableWordWrapping", false));
 
     // Runtime invoke set_overflowMode to OverflowModes.Overflow (0)
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "overflowMode", 0));
+    RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue(text, "overflowMode", 0));
 
     // Set text if it is not null
-    RET_F_UNLESS(judgment_cs);
-    RET_F_UNLESS(il2cpp_utils::SetPropertyValue(text, "text", judgment_cs));
+    RET_F_UNLESS(logger, judgment_cs);
+    RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue(text, "text", judgment_cs));
     return true;
 }
 
 bool HSV::addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut, int afterCut, int cutDistance) {
-    getLogger().debug("Adding image...");
+    static auto logger = getLogger().WithContext("HSV").WithContext("addImage");
+    logger.info("Adding image...");
     if (config.displayMode == DISPLAY_MODE_IMAGEONLY) {
-        RET_F_UNLESS(best.imagePath);
+        RET_F_UNLESS(logger, best.imagePath);
     } else if (config.displayMode == DISPLAY_MODE_IMAGEANDTEXT) {
         if (!best.imagePath) {
             // Simply use fallback text if no image is provided
@@ -97,33 +101,33 @@ bool HSV::addImage(Il2CppObject* flyingScoreEffect, judgment best, int beforeCut
         return true;
     }
     static auto spriteRendererType = il2cpp_utils::GetSystemType("UnityEngine", "SpriteRenderer");
-    RET_F_UNLESS(spriteRendererType);
-    Il2CppObject* existing = RET_F_UNLESS(il2cpp_utils::RunMethod(flyingScoreEffect, "GetComponent", spriteRendererType));
+    RET_F_UNLESS(logger, spriteRendererType);
+    Il2CppObject* existing = RET_F_UNLESS(logger, il2cpp_utils::RunMethodUnsafe(flyingScoreEffect, "GetComponent", spriteRendererType));
     if (existing) {
         // Already displaying an image, no need to fail
-        getLogger().debug("found sprite renderer: %p", existing);
+        logger.debug("found sprite renderer: %p", existing);
     } else {
         // SpriteRenderer spriteRender = flyingScoreEffect.gameObject.AddComponent(typeof(SpriteRenderer));
-        auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(flyingScoreEffect, "gameObject").value_or(nullptr));
-        existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", spriteRendererType).value_or(nullptr));
-        getLogger().debug("Created sprite renderer: %p", existing);
+        auto* go = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppObject*, false>(flyingScoreEffect, "gameObject").value_or(nullptr));
+        existing = RET_F_UNLESS(logger, il2cpp_utils::RunMethodUnsafe(go, "AddComponent", spriteRendererType).value_or(nullptr));
+        logger.debug("Created sprite renderer: %p", existing);
     }
     // Get texture
     auto sprite = spriteManager.GetSprite(*best.imagePath).value_or(nullptr);
     if (sprite) {
-        getLogger().debug("Found sprite!");
+        logger.debug("Found sprite!");
         // spriteRenderer.set_sprite(sprite);
-        RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "sprite", sprite));
-        getLogger().debug("Set sprite!");
+        RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue<false>(existing, "sprite", sprite));
+        logger.debug("Set sprite!");
         if (best.color) {
             // spriteRenderer.set_color(color);
-            RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", *best.color));
+            RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue<false>(existing, "color", *best.color));
         } else {
             // Use default color instead of last color
-            RET_F_UNLESS(il2cpp_utils::SetPropertyValue(existing, "color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
+            RET_F_UNLESS(logger, il2cpp_utils::SetPropertyValue<false>(existing, "color", (Color){1.0f, 1.0f, 1.0f, 1.0f}));
         }
     }
-    getLogger().debug("Adding image complete!");
+    logger.debug("Adding image complete!");
     // TODO: Add segment images here
     return true;
 }
@@ -136,60 +140,63 @@ bool HSV::addAudio(Il2CppObject* textObj, judgment toPlay) {
         // No need to fail with logs if we didn't even want to add a sound
         return true;
     }
+    static auto logger = getLogger().WithContext("HSV").WithContext("addAudio");
     static auto audioSourceType = il2cpp_utils::GetSystemType("UnityEngine", "AudioSource");
-    RET_F_UNLESS(audioSourceType);
-    Il2CppObject* existing = RET_F_UNLESS(il2cpp_utils::RunMethod(textObj, "GetComponent", audioSourceType));
+    RET_F_UNLESS(logger, audioSourceType);
+    Il2CppObject* existing = RET_F_UNLESS(logger, il2cpp_utils::RunMethodUnsafe(textObj, "GetComponent", audioSourceType));
     if (existing) {
         // Already playing a sound, no need to fail
-        getLogger().debug("Existing AudioSource: %p", existing);
+        logger.debug("Existing AudioSource: %p", existing);
     } else {
-        auto go = RET_F_UNLESS(il2cpp_utils::GetPropertyValue(textObj, "gameObject").value_or(nullptr));
-        existing = RET_F_UNLESS(il2cpp_utils::RunMethod(go, "AddComponent", audioSourceType).value_or(nullptr));
-        getLogger().debug("Created AudioSource: %p", existing);
+        auto* go = RET_F_UNLESS(logger, il2cpp_utils::GetPropertyValue<Il2CppObject*, false>(textObj, "gameObject").value_or(nullptr));
+        existing = RET_F_UNLESS(logger, il2cpp_utils::RunMethodUnsafe(go, "AddComponent", audioSourceType).value_or(nullptr));
+        logger.debug("Created AudioSource: %p", existing);
     }
     // Get audio clip
     auto clip = audioManager.GetAudioClip(*toPlay.soundPath).value_or(nullptr);
     if (clip) {
-        RET_F_UNLESS(il2cpp_utils::RunMethod(existing, "PlayOneShot", clip, toPlay.soundVolume.value_or(1.0f)));
+        RET_F_UNLESS(logger, il2cpp_utils::RunMethod(existing, "PlayOneShot", clip, toPlay.soundVolume.value_or(1.0f)));
     }
     return true;
 }
 
 void HSV::checkJudgments(Il2CppObject* flyingScoreEffect, int beforeCut, int afterCut, int cutDistance) {
-    getLogger().debug("Checking judgments!");
+    static auto logger = getLogger().WithContext("HSV").WithContext("checkJudgments");
+    logger.debug("Checking judgments!");
     if (!configValid) {
         return;
     }
     auto bestIndex = getBestJudgment(config.judgments, beforeCut + afterCut + cutDistance);
-    RET_V_UNLESS(bestIndex);
-    getLogger().debug("Index: %d", *bestIndex);
+    RET_V_UNLESS(logger, bestIndex);
+    logger.debug("Index: %d", *bestIndex);
     auto best = config.judgments[*bestIndex];
 
-    getLogger().debug("Adding color");
+    logger.debug("Adding color");
     if (!addColor(flyingScoreEffect, *bestIndex, beforeCut + afterCut + cutDistance)) {
-        getLogger().error("Failed to add color!");
+        logger.error("Failed to add color!");
     }
 
-    getLogger().debug("Adding image");
+    logger.debug("Adding image");
     if (!addImage(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
-        getLogger().error("Failed to add image!");
+        logger.error("Failed to add image!");
     }
 
-    getLogger().debug("Adding text");
+    logger.debug("Adding text");
     if (!addText(flyingScoreEffect, best, beforeCut, afterCut, cutDistance)) {
-        getLogger().error("Failed to add text!");
+        logger.error("Failed to add text!");
     }
 
-    getLogger().debug("Adding sound");
+    logger.debug("Adding sound");
     if (!addAudio(flyingScoreEffect, best)) {
-        getLogger().error("Failed to add audio!");
+        logger.error("Failed to add audio!");
     }
-    getLogger().debug("Complete with judging!");
+    logger.debug("Complete with judging!");
 }
 
 Il2CppString* HSV::parseFormattedText(judgment best, int beforeCut, int afterCut, int cutDistance) {
+    static auto logger = getLogger().WithContext("HSV").WithContext("parseFormattedText");
     // best.tokenizedText must be non-optional when this function is called.
-    getLogger().debug("%d, %d, %d", beforeCut, afterCut, cutDistance);
+    logger.debug("%d, %d, %d", beforeCut, afterCut, cutDistance);
     // TODO: Can make this EVEN FASTER by getting a list of indices of where the %'s are ONCE
     // Tokenize this, cache text locations AOT
     // And then replacing the corresponding indices with them as we iterate
@@ -229,6 +236,7 @@ Il2CppString* HSV::parseFormattedText(judgment best, int beforeCut, int afterCut
         if (bestSeg) {
             val = bestSeg->text.value_or("");
         }
+        logger.debug("AfterCut Best Segment: %s", val.c_str());
         tokens.set_afterCutSegment(val);
     }
     if (tokens.get_scoreTokens_size() > 0) {

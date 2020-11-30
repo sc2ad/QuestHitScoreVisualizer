@@ -110,9 +110,10 @@ void judgment::SetText(std::string text, Color color, int threshold, bool fade) 
 
 // Returns true on success, false if any segment is invalid (thus the config is invalid)
 bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_view fieldName, DisplayMode_t displayMode) {
+    static auto logger = getLogger().WithContext("Config").WithContext("getSegments");
     auto itr = config.FindMember(fieldName.data());
     if (itr == config.MemberEnd()) {
-        getLogger().warning("Failed to find required field: %s! Could not load config", fieldName.data());
+        logger.warning("Failed to find required field: %s! Could not load config", fieldName.data());
         return false;
     }
     auto arr = itr->value.GetArray();
@@ -129,7 +130,7 @@ bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_
         
         // If text is required but not provided, fail
         if (requires_text(displayMode) && !toAdd.text) {
-            getLogger().error("Config could not be loaded! displayMode: %d requires text, but segment: %d had none!", displayMode, i);
+            logger.error("Config could not be loaded! displayMode: %d requires text, but segment: %d had none!", displayMode, i);
             return false;
         }
         // If an image is required but not provided AND no fallback text is available, fail
@@ -137,16 +138,16 @@ bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_
         // TODO: Segments do not have text yet!
         // if (requires_image(displayMode) && !toAdd.imagePath) {
         //     if (requires_text(displayMode) && toAdd.text) {
-        //         getLogger().warning("Attempted to load image from: displayMode: %d, but segment: %d had none!", displayMode, i);
-        //         getLogger().info("Will not use an image for this segment");
+        //         logger.warning("Attempted to load image from: displayMode: %d, but segment: %d had none!", displayMode, i);
+        //         logger.info("Will not use an image for this segment");
         //     } else {
-        //         getLogger().warning("Config could not be loaded! displayMode: %d requires an image, but segment: %d had none!", displayMode, i);
+        //         logger.warning("Config could not be loaded! displayMode: %d requires an image, but segment: %d had none!", displayMode, i);
         //         return false;
         //     }
         // }
         // Redundant failsafe, should never occur
         if (!toAdd.text && !toAdd.imagePath) {
-            getLogger().error("Config could not be loaded! Missing text and image for segment: %d", i);
+            logger.error("Config could not be loaded! Missing text and image for segment: %d", i);
             return false;
         }
         out.push_back(toAdd);
@@ -155,9 +156,10 @@ bool getSegments(std::vector<segment>& out, ConfigDocument& config, std::string_
 }
 
 bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t displayMode) {
+    static auto logger = getLogger().WithContext("Config").WithContext("getJudgments");
     auto itr = obj.FindMember("judgments");
     if (itr == obj.MemberEnd()) {
-        getLogger().warning("Failed to find required field: judgments! Could not load config");
+        logger.warning("Failed to find required field: judgments! Could not load config");
         return false;
     }
     auto arr = itr->value.GetArray();
@@ -190,32 +192,32 @@ bool getJudgments(std::vector<judgment>& out, ConfigDocument& obj, DisplayMode_t
 
         // If text is required but not provided, fail
         if (requires_text(displayMode) && !toAdd.tokenizedText) {
-            getLogger().error("Config could not be loaded! displayMode: %d requires text, but judgment: %d had none!", displayMode, i);
+            logger.error("Config could not be loaded! displayMode: %d requires text, but judgment: %d had none!", displayMode, i);
             return false;
         }
         // If color is not provided, revert to default color.
         if (requires_text(displayMode) && !toAdd.color) {
-            getLogger().warning("Could not load color for judgment: %d, using white!", i);
+            logger.warning("Could not load color for judgment: %d, using white!", i);
             toAdd.color.emplace((Color){0.0f, 0.0f, 0.0f, 0.0f});
         }
         // If an image is required but not provided AND no fallback text is available, fail
         // This will bring attention to image only displays failing to have images for all judgments
         if (requires_image(displayMode) && !toAdd.imagePath) {
             if (requires_text(displayMode) && toAdd.tokenizedText) {
-                getLogger().warning("Attempted to load image from: displayMode: %d, but judgment: %d had none!", displayMode, i);
-                getLogger().info("Will not use an image for this judgment");
+                logger.warning("Attempted to load image from: displayMode: %d, but judgment: %d had none!", displayMode, i);
+                logger.info("Will not use an image for this judgment");
                 if (!toAdd.color) {
-                    getLogger().info("Using default color!");
+                    logger.info("Using default color!");
                     toAdd.color.emplace((Color){0.0f, 0.0f, 0.0f, 0.0f});
                 }
             } else {
-                getLogger().warning("Config could not be loaded! displayMode: %d requires an image, but judgment: %d had none!", displayMode, i);
+                logger.warning("Config could not be loaded! displayMode: %d requires an image, but judgment: %d had none!", displayMode, i);
                 return false;
             }
         }
         // Redundant failsafe, should never occur
         if (!toAdd.tokenizedText && !toAdd.imagePath) {
-            getLogger().warning("Config could not be loaded! Missing text and image for judgment: %d", i);
+            logger.warning("Config could not be loaded! Missing text and image for judgment: %d", i);
             return false;
         }
     }
@@ -231,11 +233,12 @@ bool HSVConfig::VersionGreaterThanEqual(int major, int minor, int patch) {
 }
 
 void ConfigHelper::AddJSONJudgment(rapidjson::MemoryPoolAllocator<>& allocator, rapidjson::Document::ValueType& arr, judgment& j) {
+    static auto logger = getLogger().WithContext("Config").WithContext("AddJSONJudgment");
     rapidjson::Value v(rapidjson::kObjectType);
     v.AddMember("threshold", j.threshold, allocator);
     if (j.tokenizedText) {
         auto text = j.tokenizedText->original.c_str();
-        getLogger().debug("Adding text field: %s", text);
+        logger.debug("Adding text field: %s", text);
         v.AddMember("text", rapidjson::GenericStringRef<char>(text), allocator);
     }
     if (j.color) {
@@ -298,18 +301,19 @@ bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
         con.SetToDefault();
         return true;
     }
+    static auto logger = getLogger().WithContext("ConfigHelper").WithContext("LoadConfig");
     // Default to true.
     // This allows us to forcibly regenerate the config if it doesn't load properly and doesn't have this property.
     con.isDefaultConfig = getBool(config, "isDefaultConfig").value_or(true);
-    con.majorVersion = RET_F_UNLESS(getInt(config, "majorVersion", true));
-    con.minorVersion = RET_F_UNLESS(getInt(config, "minorVersion", true));
-    con.patchVersion = RET_F_UNLESS(getInt(config, "patchVersion", true));
-    con.displayMode = convertDisplayMode(RET_F_UNLESS(getString(config, "displayMode", true)));
+    con.majorVersion = RET_F_UNLESS(logger, getInt(config, "majorVersion", true));
+    con.minorVersion = RET_F_UNLESS(logger, getInt(config, "minorVersion", true));
+    con.patchVersion = RET_F_UNLESS(logger, getInt(config, "patchVersion", true));
+    con.displayMode = convertDisplayMode(RET_F_UNLESS(logger, getString(config, "displayMode", true)));
 
-    RET_F_UNLESS(getJudgments(con.judgments, config, con.displayMode));
-    RET_F_UNLESS(getSegments(con.beforeCutAngleJudgments, config, "beforeCutAngleJudgments", con.displayMode));
-    RET_F_UNLESS(getSegments(con.accuracyJudgments, config, "accuracyJudgments", con.displayMode));
-    RET_F_UNLESS(getSegments(con.afterCutAngleJudgments, config, "afterCutAngleJudgments", con.displayMode));
+    RET_F_UNLESS(logger, getJudgments(con.judgments, config, con.displayMode));
+    RET_F_UNLESS(logger, getSegments(con.beforeCutAngleJudgments, config, "beforeCutAngleJudgments", con.displayMode));
+    RET_F_UNLESS(logger, getSegments(con.accuracyJudgments, config, "accuracyJudgments", con.displayMode));
+    RET_F_UNLESS(logger, getSegments(con.afterCutAngleJudgments, config, "afterCutAngleJudgments", con.displayMode));
 
     // Default to standard type
     con.type = (ConfigType_t)getInt(config, "type").value_or(CONFIG_TYPE_STANDARD);
@@ -333,7 +337,8 @@ bool ConfigHelper::LoadConfig(HSVConfig& con, ConfigDocument& config) {
 }
 
 void HSVConfig::WriteToConfig(ConfigDocument& config) {
-    getLogger().debug("Starting to write to config");
+    static auto logger = getLogger().WithContext("HSVConfig").WithContext("WriteToConfig");
+    logger.debug("Starting to write to config");
     config.SetObject();
     config.RemoveAllMembers();
     rapidjson::MemoryPoolAllocator<>& allocator = config.GetAllocator();
@@ -342,21 +347,21 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     config.AddMember("minorVersion", minorVersion, allocator);
     config.AddMember("patchVersion", patchVersion, allocator);
     auto arr = rapidjson::Value(rapidjson::kArrayType);
-    getLogger().debug("Starting judgments");
-    getLogger().debug("judgments length: %lu", judgments.size());
+    logger.debug("Starting judgments");
+    logger.debug("judgments length: %lu", judgments.size());
     // Add judgments
     for (auto itr = judgments.begin(); itr != judgments.end(); ++itr) {
-        getLogger().debug("judgment: %i", itr->threshold);
+        logger.debug("judgment: %i", itr->threshold);
         ConfigHelper::AddJSONJudgment(allocator, arr, *itr);
     }
     config.AddMember("judgments", arr, allocator);
     // Add segments
-    getLogger().debug("Starting segments");
+    logger.debug("Starting segments");
     ConfigHelper::CreateJSONSegments(allocator, config, beforeCutAngleJudgments, "beforeCutAngleJudgments");
     ConfigHelper::CreateJSONSegments(allocator, config, accuracyJudgments, "accuracyJudgments");
     ConfigHelper::CreateJSONSegments(allocator, config, afterCutAngleJudgments, "afterCutAngleJudgments");
     // Set metadata
-    getLogger().debug("Starting metadata");
+    logger.debug("Starting metadata");
     config.AddMember("type", type, allocator); // Type can be: 0: Standard, 1: Christmas, 2: Easter, etc.
     config.AddMember("useSeasonalThemes", useSeasonalThemes, allocator);
     config.AddMember("backupBeforeSeason", backupBeforeSeason, allocator);
@@ -369,7 +374,7 @@ void HSVConfig::WriteToConfig(ConfigDocument& config) {
     config.AddMember("doIntermediateUpdates", doIntermediateUpdates, allocator);
     config.AddMember("showInitialScore", showInitialScore, allocator);
     config.AddMember("isDefaultConfig", isDefaultConfig, allocator);
-    getLogger().debug("Complete!");
+    logger.debug("Complete!");
 }
 
 void HSVConfig::SetToDefault() {

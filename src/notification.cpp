@@ -23,6 +23,7 @@ NotificationBox::message_t NotificationBox::popNotification() {
 }
 
 void NotificationBox::setMessage() {
+    static auto logger = getLogger().WithContext("NotificationBox").WithContext("setMessage");
     // If we can, try to pop from the queue
     message_t m = popNotification();
     // If the message we popped is the current message, we don't need to continue
@@ -35,7 +36,7 @@ void NotificationBox::setMessage() {
         // Need to find a way to failsafe this, or otherwise assume we have entered an irrecoverable state.
         return;
     }
-    ASSERT_MSG(notificationBox.set(m.msg), "Failed to set text of notificationBox!");
+    ASSERT_MSG(logger, notificationBox.set(m.msg), "Failed to set text of notificationBox!");
     // If we can, set messageDisplayed to now
     messageDisplayed = std::chrono::system_clock::now();
     messageEnd = messageDisplayed + std::chrono::seconds(m.duration);
@@ -116,8 +117,9 @@ void NotificationBox::parallelUpdate() {
 // but it can ALSO be called even if the notificationBox is still valid (at the cost of performance)
 void NotificationBox::markInvalid() {
     if (notificationBoxValid) {
+        static auto logger = getLogger().WithContext("NotificationBox").WithContext("markInvalid");
         notificationBoxValid = false;
-        ASSERT_MSG(notificationBox.destroy(), "Failed to destroy notificationBox!");
+        ASSERT_MSG(logger, notificationBox.destroy(), "Failed to destroy notificationBox!");
     }
 }
 
