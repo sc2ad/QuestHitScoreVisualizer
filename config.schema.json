@@ -1,0 +1,272 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "type": "object",
+    "title": "HSV Config",
+    "definitions": {
+        "judgment": {
+            "title": "Judgment",
+            "description": "A judgment object.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "threshold": {
+                    "description": "Threshold that the score must be greater than or equal to display this judgment.",
+                    "type": "integer",
+                    "default": 0
+                },
+                "text": {
+                    "$comment": "Does not yet match on format",
+                    "description": "The text to display with the judgment. Can provide format specifiers if the displayMode is format or better.",
+                    "type": "string",
+                    "default": ""
+                },
+                "color": {
+                    "description": "The color to display with the judgment. Must be of length 4, RGBA.",
+                    "type": "array",
+                    "default": [0, 0, 0, 0],
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "items": {
+                        "description": "A color value.",
+                        "type": "number"
+                    }
+                },
+                "fade": {
+                    "description": "Whether to fade the color between the last matching judgment and this one.",
+                    "type": "boolean",
+                    "default": false
+                },
+                "imagePath": {
+                    "description": "Path to an image of any Unity supported format. This is only used when displayMode is either imageOnly or textAndImage. If this is not provided with displayMode textAndImage, it will fallback to only using the text.",
+                    "type": "string",
+                    "default": ""
+                },
+                "soundPath": {
+                    "description": "Path to a .wav, .mp3, or .ogg audio file to play for this judgment.",
+                    "type": "string",
+                    "default": ""
+                },
+                "soundVolume": {
+                    "description": "The volume to play the soundPath at.",
+                    "type": "number",
+                    "default": 1,
+                    "minimum": 0,
+                    "maximum": 1
+                }
+            },
+            "oneOf": [
+                {
+                    "required": [
+                        "text"
+                    ]
+                },
+                {
+                    "required": [
+                        "imagePath"
+                    ]
+                }
+            ]
+        },
+        "segment": {
+            "title": "Segment",
+            "description": "A segment object.",
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+                "threshold": {
+                    "description": "Threshold that the segment score must be greater than or equal to display this segment.",
+                    "type": "number",
+                    "default": 0
+                },
+                "text": {
+                    "description": "Text to display for this segment (used as %B, %C, or %A in judgment, with a format text option).",
+                    "type": "string",
+                    "default": ""
+                },
+                "imagePath": {
+                    "description": "Path to an image of any Unity supported format. This is only used when displayMode is either imageOnly or textAndImage.",
+                    "type": "string",
+                    "default": ""
+                }
+            },
+            "oneOf": [
+                {
+                    "required": [
+                        "text"
+                    ]
+                },
+                {
+                    "required": [
+                        "imagePath"
+                    ]
+                }
+            ]
+        }
+    },
+    "description": "HSV Configuration",
+    "properties": {
+        "majorVersion": {
+            "description": "Indicates the major version of the configuration.",
+            "type": "integer",
+            "default": 2
+        },
+        "minorVersion": {
+            "description": "Indicates the minor version of the configuration.",
+            "type": "integer",
+            "default": 4
+        },
+        "patchVersion": {
+            "description": "Indicates the patch version of the configuration.",
+            "type": "integer",
+            "default": 4
+        },
+        "isDefaultConfig": {
+            "type": "boolean",
+            "if": {
+                "const": "false"
+            },
+            "then": {
+                "description": "Indicates whether the configuration should be replaced on updates to the mod/configuration version. This should be set to false when making custom configurations."
+            },
+            "else": {
+                "description": "This should be set to false if any modifications are made to this configuration!"
+            },
+            "default": false
+        },
+        "displayMode": {
+            "type": "string",
+            "if": {
+                "enum": [
+                    "format",
+                    "numeric",
+                    "textOnly",
+                    "scoreOnTop",
+                    "textOnTop",
+                    "imageOnly",
+                    "imageAndText"
+                ]
+            },
+            "then": {
+                "description": "The display mode to display judgments. Must be one of the following, if not, it will fallback to textOnTop"
+            },
+            "else": {
+                "description": "This is an unknown displayMode, it will fallback to textOnTop. Use one of the supported options instead."
+            },
+            "default": "format"
+        },
+        "useFixedPos": {
+            "description": "Whether to force the visualization to always appear in a single, fixed location.",
+            "type": "boolean",
+            "default": false
+        },
+        "fixedPosX": {
+            "description": "The x position to force the visualization to appear at. Only used if useFixedPos is true.",
+            "type": "number",
+            "default": 0
+        },
+        "fixedPosY": {
+            "description": "The y position to force the visualization to appear at. Only used if useFixedPos is true.",
+            "type": "number",
+            "default": 0
+        },
+        "fixedPosZ": {
+            "description": "The z position to force the visualization to appear at. Only used if useFixedPos is true.",
+            "type": "number",
+            "default": 0
+        },
+        "type": {
+            "description": "The configuration type.",
+            "type": "integer",
+            "default": 0,
+            "enum": [
+                0, 1, 2
+            ]
+        },
+        "useSeasonalThemes": {
+            "description": "Whether to use seasonal themes and to convert between them.",
+            "type": "boolean",
+            "default": true
+        },
+        "backupBeforeSeason": {
+            "description": "Whether to back up the configuration before overriting it on a seasonal change. This is only used if useSeasonalThemes is true.",
+            "type": "boolean",
+            "default": true
+        },
+        "restoreAfterSeason": {
+            "description": "Whether to restore the confifugration after a seasonal change.",
+            "type": "boolean",
+            "default": true
+        },
+        "doIntermediateUpdates": {
+            "description": "Whether to perform intermediate updates on the score as it is processing.",
+            "type": "boolean",
+            "default": true
+        },
+        "showInitialScore": {
+            "description": "Whether to show an un-processed version of the score before it gets updated or displayed by HSV.",
+            "type": "boolean",
+            "default": false
+        },
+        "judgments": {
+            "description": "judgments is an array of judgment objects arranged in descending order of threshold.",
+            "type": "array",
+            "minItems": 1,
+            "items": {
+                "$ref": "#/definitions/judgment"
+            }
+        },
+        "beforeCutAngleJudgments": {
+            "description": "beforeCutAngleJudgments is an array of segment objects arranged in descending order of threshold, used for 'before cut' comparisons (0-70 scores).",
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "$ref": "#/definitions/segment"
+            }
+        },
+        "accuracyJudgments": {
+            "description": "accuracyJudgments is an array of segment objects arranged in descending order of threshold, used for 'before cut' comparisons (0-70 scores).",
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "$ref": "#/definitions/segment"
+            }
+        },
+        "afterCutAngleJudgments": {
+            "description": "afterCutAngleJudgments is an array of segment objects arranged in descending order of threshold, used for 'before cut' comparisons (0-70 scores).",
+            "type": "array",
+            "minItems": 0,
+            "items": {
+                "$ref": "#/definitions/segment"
+            }
+        }
+    },
+    "allOf": [
+        {
+            "required": [
+                "majorVersion",
+                "minorVersion",
+                "patchVersion",
+                "displayMode",
+                "judgments",
+                "beforeCutAngleJudgments",
+                "accuracyJudgments",
+                "afterCutAngleJudgments"
+            ]
+        },
+        {
+            "if": {
+                "properties": {
+                    "useFixedPos": {
+                        "const": true
+                    }
+                }
+            },
+            "then": {
+                "required": [
+                    "useFixedPos", "fixedPosX", "fixedPosY", "fixedPosZ"
+                ]
+            },
+            "else": {}
+        }
+    ]
+}
