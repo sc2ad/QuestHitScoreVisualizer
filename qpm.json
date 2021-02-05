@@ -1,0 +1,38 @@
+{
+  "sharedDir": "shared",
+  "dependenciesDir": "extern",
+  "info": {
+    "name": "Quest Hitscore Visualizer",
+    "id": "QuestHitscoreVisualizer",
+    "version": "4.2.1",
+    "url": null,
+    "additionalData": {}
+  },
+  "dependencies": [
+    {
+      "id": "beatsaber-hook",
+      "versionRange": "1.0.12",
+      "additionalData": {
+        "extraFiles": [
+          "src/inline-hook"
+        ]
+      }
+    },
+    {
+      "id": "codegen",
+      "versionRange": "*",
+      "additionalData": {}
+    },
+    {
+      "id": "libil2cpp",
+      "versionRange": "*",
+      "additionalData": {}
+    },
+    {
+      "id": "questui",
+      "versionRange": "*",
+      "additionalData": {}
+    }
+  ],
+  "additionalData": {}
+}

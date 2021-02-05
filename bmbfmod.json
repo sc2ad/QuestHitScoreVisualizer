@@ -1,33 +1,30 @@
 {
-    "id": "QuestHitscoreVisualizer",
-    "name": "Hitscore Visualizer",
-    "author": "Sc2ad",
-    "description": [
-        
-        "It visualizes your scores with fancy colors or even images!",
-        
-        "Now a completely standalone mod, based off of Ratsby's original PC mod."
-        
-    ],
-    "category": "Gameplay",
-    "gameVersion": "1.13.0",
-    "version": "4.2.0",
-    "platform": "Quest",
-    "components": [
-        {
-            "type": "HookMod",
-            "installAction": {
-                "installLibraryFile": "libQuestHitscoreVisualizer.so"
-            },
-            "uninstallAction": {
-                "removeLibraryFile": "libQuestHitscoreVisualizer.so"
-            }
-        },
-        {
-            "type": "HookModLibrary",
-            "installAction": {
-                "installLibraryFile": "libbeatsaber-hook_1_0_0.so"
-            }
-        }
-    ]
+  "id": "QuestHitscoreVisualizer",
+  "name": "Hitscore Visualizer",
+  "version": "4.2.1",
+  "author": "Sc2ad",
+  "description": [
+    "It visualizes your scores with fancy colors or even images!",
+    "Now a completely standalone mod, based off of Ratsby's original PC mod."
+  ],
+  "category": "Gameplay",
+  "gameVersion": "1.13.2",
+  "platform": "Quest",
+  "components": [
+    {
+      "type": "HookMod",
+      "installAction": {
+        "installLibraryFile": "libQuestHitscoreVisualizer.so"
+      },
+      "uninstallAction": {
+        "removeLibraryFile": "libQuestHitscoreVisualizer.so"
+      }
+    },
+    {
+      "type": "HookModLibrary",
+      "installAction": {
+        "installLibraryFile": "libbeatsaber-hook_1_0_12.so"
+      }
+    }
+  ]
 }

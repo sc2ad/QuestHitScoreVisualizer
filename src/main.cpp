@@ -22,9 +22,9 @@ const ModInfo& getModInfo() {
     return modInfo;
 }
 
-Logger& getLogger() {
-    static Logger logger(modInfo, LoggerOptions(false, true));
-    return logger;
+Logger& logger() {
+    static auto logger = new Logger(modInfo, LoggerOptions(false, true));
+    return *logger;
 }
 
 Configuration& getConfig() {
@@ -36,5 +36,5 @@ extern "C" void setup(ModInfo& info) {
     info.id = MOD_ID;
     info.version = VERSION;
     modInfo = info;
-    getLogger().info("Calling setup!");
+    logger().info("Calling setup!");
 }
