@@ -7,4 +7,4 @@ if (-not ($PSVersionTable.PSEdition -eq "Core")) {
 }
 
 & $buildScript NDK_PROJECT_PATH=$PSScriptRoot APP_BUILD_SCRIPT=$PSScriptRoot/Android.mk NDK_APPLICATION_MK=$PSScriptRoot/Application.mk
-Compress-Archive -Path ".\libs\arm64-v8a\*.so",".\bmbfmod.json" -DestinationPath "./QuestHitscoreVisualizer_v4.2.1.zip" -Update
+Compress-Archive -Path ".\libs\arm64-v8a\libQuestHitscoreVisualizer.so",".\bmbfmod.json",".\libs\arm64-v8a\libbeatsaber-hook*.so"  -DestinationPath "./QuestHitscoreVisualizer_v4.2.1.zip" -Update
